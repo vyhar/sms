@@ -1,988 +1,1605 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SignalSend — SMS Platform</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Syne:wght@400;600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js" crossorigin="anonymous"></script>
-<style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SignalSend — SMS Platform</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Syne:wght@400;600;700&family=DM+Sans:wght@300;400;500&display=swap"
+      rel="stylesheet"
+    />
+    <script
+      src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"
+      crossorigin="anonymous"
+    ></script>
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
 
-  :root {
-    --bg: #0d0f14;
-    --bg2: #13161e;
-    --bg3: #1a1e28;
-    --bg4: #222636;
-    --border: #2a2f42;
-    --border2: #363c55;
-    --accent: #4f8ef7;
-    --accent2: #7c6af7;
-    --green: #3dd68c;
-    --amber: #f5a623;
-    --red: #f05252;
-    --text: #e8eaf0;
-    --text2: #8b90a8;
-    --text3: #555b78;
-    --mono: 'IBM Plex Mono', monospace;
-    --sans: 'DM Sans', sans-serif;
-    --display: 'Syne', sans-serif;
-  }
+      :root {
+        --bg: #0d0f14;
+        --bg2: #13161e;
+        --bg3: #1a1e28;
+        --bg4: #222636;
+        --border: #2a2f42;
+        --border2: #363c55;
+        --accent: #4f8ef7;
+        --accent2: #7c6af7;
+        --green: #3dd68c;
+        --amber: #f5a623;
+        --red: #f05252;
+        --text: #e8eaf0;
+        --text2: #8b90a8;
+        --text3: #555b78;
+        --mono: "IBM Plex Mono", monospace;
+        --sans: "DM Sans", sans-serif;
+        --display: "Syne", sans-serif;
+      }
 
-  body {
-    font-family: var(--sans);
-    background: var(--bg);
-    color: var(--text);
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    font-size: 14px;
-  }
+      body {
+        font-family: var(--sans);
+        background: var(--bg);
+        color: var(--text);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        font-size: 14px;
+      }
 
-  .security-banner {
-    padding: 10px 24px;
-    background: rgba(245,166,35,0.10);
-    border-bottom: 1px solid rgba(245,166,35,0.25);
-    color: var(--amber);
-    font-size: 12px;
-    line-height: 1.5;
-  }
+      .security-banner {
+        padding: 10px 24px;
+        background: rgba(245, 166, 35, 0.1);
+        border-bottom: 1px solid rgba(245, 166, 35, 0.25);
+        color: var(--amber);
+        font-size: 12px;
+        line-height: 1.5;
+      }
 
-  /* HEADER */
-  header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 24px;
-    height: 56px;
-    border-bottom: 1px solid var(--border);
-    background: var(--bg2);
-    flex-shrink: 0;
-  }
-  .logo {
-    font-family: var(--display);
-    font-size: 18px;
-    font-weight: 700;
-    letter-spacing: -0.5px;
-    color: var(--text);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .logo-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); animation: pulse 2s infinite; }
-  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(0.8)} }
+      /* HEADER */
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 24px;
+        height: 56px;
+        border-bottom: 1px solid var(--border);
+        background: var(--bg2);
+        flex-shrink: 0;
+      }
+      .logo {
+        font-family: var(--display);
+        font-size: 18px;
+        font-weight: 700;
+        letter-spacing: -0.5px;
+        color: var(--text);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .logo-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--accent);
+        animation: pulse 2s infinite;
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+          transform: scale(1);
+        }
+        50% {
+          opacity: 0.5;
+          transform: scale(0.8);
+        }
+      }
 
-  .rc-status {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-family: var(--mono);
-    font-size: 11px;
-    color: var(--text2);
-  }
-  .rc-status .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text3); }
-  .rc-status.connected .dot { background: var(--green); }
-  .rc-status.connected { color: var(--green); }
+      .rc-status {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-family: var(--mono);
+        font-size: 11px;
+        color: var(--text2);
+      }
+      .rc-status .dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--text3);
+      }
+      .rc-status.connected .dot {
+        background: var(--green);
+      }
+      .rc-status.connected {
+        color: var(--green);
+      }
 
-  /* TABS */
-  .tabs {
-    display: flex;
-    gap: 0;
-    padding: 0 24px;
-    background: var(--bg2);
-    border-bottom: 1px solid var(--border);
-    flex-shrink: 0;
-  }
-  .tab {
-    padding: 12px 20px;
-    font-family: var(--display);
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--text3);
-    cursor: pointer;
-    border-bottom: 2px solid transparent;
-    transition: all 0.15s;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    user-select: none;
-  }
-  .tab:hover { color: var(--text2); }
-  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
-  .tab .badge {
-    background: var(--red);
-    color: #fff;
-    border-radius: 10px;
-    font-size: 10px;
-    font-family: var(--mono);
-    padding: 1px 5px;
-    min-width: 18px;
-    text-align: center;
-    display: none;
-  }
-  .tab .badge.visible { display: inline; }
+      /* TABS */
+      .tabs {
+        display: flex;
+        gap: 0;
+        padding: 0 24px;
+        background: var(--bg2);
+        border-bottom: 1px solid var(--border);
+        flex-shrink: 0;
+      }
+      .tab {
+        padding: 12px 20px;
+        font-family: var(--display);
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text3);
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        transition: all 0.15s;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        user-select: none;
+      }
+      .tab:hover {
+        color: var(--text2);
+      }
+      .tab.active {
+        color: var(--accent);
+        border-bottom-color: var(--accent);
+      }
+      .tab .badge {
+        background: var(--red);
+        color: #fff;
+        border-radius: 10px;
+        font-size: 10px;
+        font-family: var(--mono);
+        padding: 1px 5px;
+        min-width: 18px;
+        text-align: center;
+        display: none;
+      }
+      .tab .badge.visible {
+        display: inline;
+      }
 
-  /* PANELS */
-  .panel { display: none; flex: 1; overflow: hidden; }
-  .panel.active { display: flex; }
+      /* PANELS */
+      .panel {
+        display: none;
+        flex: 1;
+        overflow: hidden;
+      }
+      .panel.active {
+        display: flex;
+      }
 
-  /* ======== DISPATCH PANEL ======== */
-  #dispatch { flex-direction: row; gap: 0; }
+      /* ======== DISPATCH PANEL ======== */
+      #dispatch {
+        flex-direction: row;
+        gap: 0;
+      }
 
-  /* LEFT: Recipients */
-  .recipients-pane {
-    width: 340px;
-    flex-shrink: 0;
-    border-right: 1px solid var(--border);
-    display: flex;
-    flex-direction: column;
-    background: var(--bg2);
-    overflow: hidden;
-  }
-  .pane-header {
-    padding: 16px 20px 12px;
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-  .pane-title {
-    font-family: var(--display);
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--text2);
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-  }
-  .pane-count {
-    font-family: var(--mono);
-    font-size: 11px;
-    color: var(--text3);
-  }
+      /* LEFT: Recipients */
+      .recipients-pane {
+        width: 340px;
+        flex-shrink: 0;
+        border-right: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        background: var(--bg2);
+        overflow: hidden;
+      }
+      .pane-header {
+        padding: 16px 20px 12px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .pane-title {
+        font-family: var(--display);
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text2);
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+      .pane-count {
+        font-family: var(--mono);
+        font-size: 11px;
+        color: var(--text3);
+      }
 
-  .search-bar {
-    padding: 10px 16px;
-    border-bottom: 1px solid var(--border);
-  }
-  .search-bar input {
-    width: 100%;
-    background: var(--bg3);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    color: var(--text);
-    padding: 7px 10px;
-    font-family: var(--sans);
-    font-size: 13px;
-    outline: none;
-    transition: border-color 0.15s;
-  }
-  .search-bar input:focus { border-color: var(--border2); }
-  .search-bar input::placeholder { color: var(--text3); }
+      .search-bar {
+        padding: 10px 16px;
+        border-bottom: 1px solid var(--border);
+      }
+      .search-bar input {
+        width: 100%;
+        background: var(--bg3);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        color: var(--text);
+        padding: 7px 10px;
+        font-family: var(--sans);
+        font-size: 13px;
+        outline: none;
+        transition: border-color 0.15s;
+      }
+      .search-bar input:focus {
+        border-color: var(--border2);
+      }
+      .search-bar input::placeholder {
+        color: var(--text3);
+      }
 
-  .recipients-list {
-    flex: 1;
-    overflow-y: auto;
-    padding: 8px 0;
-  }
-  .recipients-list::-webkit-scrollbar { width: 4px; }
-  .recipients-list::-webkit-scrollbar-track { background: transparent; }
-  .recipients-list::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+      .recipients-list {
+        flex: 1;
+        overflow-y: auto;
+        padding: 8px 0;
+      }
+      .recipients-list::-webkit-scrollbar {
+        width: 4px;
+      }
+      .recipients-list::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .recipients-list::-webkit-scrollbar-thumb {
+        background: var(--border2);
+        border-radius: 2px;
+      }
 
-  .recipient-item {
-    display: flex;
-    align-items: center;
-    padding: 8px 16px;
-    gap: 10px;
-    cursor: pointer;
-    transition: background 0.1s;
-    border-radius: 0;
-  }
-  .recipient-item:hover { background: var(--bg3); }
-  .recipient-item.selected { background: var(--bg4); }
+      .recipient-item {
+        display: flex;
+        align-items: center;
+        padding: 8px 16px;
+        gap: 10px;
+        cursor: pointer;
+        transition: background 0.1s;
+        border-radius: 0;
+      }
+      .recipient-item:hover {
+        background: var(--bg3);
+      }
+      .recipient-item.selected {
+        background: var(--bg4);
+      }
 
-  .recipient-check {
-    width: 16px;
-    height: 16px;
-    border: 1.5px solid var(--border2);
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    transition: all 0.15s;
-  }
-  .recipient-check.checked { background: var(--accent); border-color: var(--accent); }
-  .recipient-check.checked::after { content: '✓'; color: #fff; font-size: 9px; }
+      .recipient-check {
+        width: 16px;
+        height: 16px;
+        border: 1.5px solid var(--border2);
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        transition: all 0.15s;
+      }
+      .recipient-check.checked {
+        background: var(--accent);
+        border-color: var(--accent);
+      }
+      .recipient-check.checked::after {
+        content: "✓";
+        color: #fff;
+        font-size: 9px;
+      }
 
-  .recipient-avatar {
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-family: var(--mono);
-    font-size: 11px;
-    font-weight: 500;
-    flex-shrink: 0;
-  }
+      .recipient-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--mono);
+        font-size: 11px;
+        font-weight: 500;
+        flex-shrink: 0;
+      }
 
-  .recipient-info { flex: 1; min-width: 0; }
-  .recipient-name { font-size: 13px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .recipient-number { font-family: var(--mono); font-size: 11px; color: var(--text3); margin-top: 1px; }
+      .recipient-info {
+        flex: 1;
+        min-width: 0;
+      }
+      .recipient-name {
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--text);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .recipient-number {
+        font-family: var(--mono);
+        font-size: 11px;
+        color: var(--text3);
+        margin-top: 1px;
+      }
 
-  .recipient-status {
-    font-family: var(--mono);
-    font-size: 10px;
-    padding: 2px 6px;
-    border-radius: 4px;
-    flex-shrink: 0;
-  }
-  .recipient-status.sent { background: rgba(61,214,140,0.1); color: var(--green); }
-  .recipient-status.pending { background: rgba(79,142,247,0.1); color: var(--accent); }
-  .recipient-status.failed { background: rgba(240,82,82,0.1); color: var(--red); }
+      .recipient-status {
+        font-family: var(--mono);
+        font-size: 10px;
+        padding: 2px 6px;
+        border-radius: 4px;
+        flex-shrink: 0;
+      }
+      .recipient-status.sent {
+        background: rgba(61, 214, 140, 0.1);
+        color: var(--green);
+      }
+      .recipient-status.pending {
+        background: rgba(79, 142, 247, 0.1);
+        color: var(--accent);
+      }
+      .recipient-status.failed {
+        background: rgba(240, 82, 82, 0.1);
+        color: var(--red);
+      }
 
-  /* Import toolbar */
-  .import-bar {
-    padding: 10px 16px;
-    border-top: 1px solid var(--border);
-    display: flex;
-    gap: 8px;
-  }
-  .btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 7px 12px;
-    border-radius: 6px;
-    font-family: var(--sans);
-    font-size: 12px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.15s;
-    border: 1px solid var(--border);
-    background: var(--bg3);
-    color: var(--text2);
-  }
-  .btn:hover { background: var(--bg4); color: var(--text); border-color: var(--border2); }
-  .btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
-  .btn.primary:hover { background: #3a7ae0; border-color: #3a7ae0; }
-  .btn.danger { background: rgba(240,82,82,0.1); color: var(--red); border-color: rgba(240,82,82,0.2); }
-  .btn.danger:hover { background: rgba(240,82,82,0.2); }
-  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
-  .btn.sm { padding: 4px 8px; font-size: 11px; }
+      /* Import toolbar */
+      .import-bar {
+        padding: 10px 16px;
+        border-top: 1px solid var(--border);
+        display: flex;
+        gap: 8px;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 7px 12px;
+        border-radius: 6px;
+        font-family: var(--sans);
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.15s;
+        border: 1px solid var(--border);
+        background: var(--bg3);
+        color: var(--text2);
+      }
+      .btn:hover {
+        background: var(--bg4);
+        color: var(--text);
+        border-color: var(--border2);
+      }
+      .btn.primary {
+        background: var(--accent);
+        color: #fff;
+        border-color: var(--accent);
+      }
+      .btn.primary:hover {
+        background: #3a7ae0;
+        border-color: #3a7ae0;
+      }
+      .btn.danger {
+        background: rgba(240, 82, 82, 0.1);
+        color: var(--red);
+        border-color: rgba(240, 82, 82, 0.2);
+      }
+      .btn.danger:hover {
+        background: rgba(240, 82, 82, 0.2);
+      }
+      .btn:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+      .btn.sm {
+        padding: 4px 8px;
+        font-size: 11px;
+      }
 
-  /* RIGHT: Compose */
-  .compose-pane {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    background: var(--bg);
-  }
+      /* RIGHT: Compose */
+      .compose-pane {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        background: var(--bg);
+      }
 
-  .compose-header {
-    padding: 20px 28px 16px;
-    border-bottom: 1px solid var(--border);
-    background: var(--bg2);
-  }
-  .compose-label {
-    font-family: var(--display);
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--text3);
-    margin-bottom: 6px;
-  }
-  .compose-summary {
-    font-size: 14px;
-    color: var(--text2);
-  }
-  .compose-summary span { color: var(--accent); font-weight: 500; }
+      .compose-header {
+        padding: 20px 28px 16px;
+        border-bottom: 1px solid var(--border);
+        background: var(--bg2);
+      }
+      .compose-label {
+        font-family: var(--display);
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--text3);
+        margin-bottom: 6px;
+      }
+      .compose-summary {
+        font-size: 14px;
+        color: var(--text2);
+      }
+      .compose-summary span {
+        color: var(--accent);
+        font-weight: 500;
+      }
 
-  .compose-body { flex: 1; padding: 24px 28px; display: flex; flex-direction: column; gap: 20px; }
+      .compose-body {
+        flex: 1;
+        padding: 24px 28px;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
 
-  .field-group { display: flex; flex-direction: column; gap: 6px; }
-  .field-label {
-    font-family: var(--mono);
-    font-size: 11px;
-    color: var(--text3);
-    letter-spacing: 0.05em;
-  }
-  .from-select {
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    color: var(--text);
-    padding: 9px 12px;
-    font-family: var(--mono);
-    font-size: 13px;
-    outline: none;
-    cursor: pointer;
-    transition: border-color 0.15s;
-    width: 100%;
-  }
-  .from-select:focus { border-color: var(--accent); }
+      .field-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .field-label {
+        font-family: var(--mono);
+        font-size: 11px;
+        color: var(--text3);
+        letter-spacing: 0.05em;
+      }
+      .from-select {
+        background: var(--bg2);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        color: var(--text);
+        padding: 9px 12px;
+        font-family: var(--mono);
+        font-size: 13px;
+        outline: none;
+        cursor: pointer;
+        transition: border-color 0.15s;
+        width: 100%;
+      }
+      .from-select:focus {
+        border-color: var(--accent);
+      }
 
-  .message-box {
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    overflow: hidden;
-    transition: border-color 0.15s;
-  }
-  .message-box:focus-within { border-color: var(--border2); }
-  .message-box textarea {
-    width: 100%;
-    min-height: 160px;
-    background: transparent;
-    border: none;
-    color: var(--text);
-    padding: 14px 16px;
-    font-family: var(--sans);
-    font-size: 14px;
-    line-height: 1.6;
-    resize: vertical;
-    outline: none;
-  }
-  .message-box textarea::placeholder { color: var(--text3); }
-  .message-footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 8px 16px;
-    border-top: 1px solid var(--border);
-  }
-  .char-count { font-family: var(--mono); font-size: 11px; color: var(--text3); }
-  .char-count.warn { color: var(--amber); }
-  .char-count.over { color: var(--red); }
+      .message-box {
+        background: var(--bg2);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        overflow: hidden;
+        transition: border-color 0.15s;
+      }
+      .message-box:focus-within {
+        border-color: var(--border2);
+      }
+      .message-box textarea {
+        width: 100%;
+        min-height: 160px;
+        background: transparent;
+        border: none;
+        color: var(--text);
+        padding: 14px 16px;
+        font-family: var(--sans);
+        font-size: 14px;
+        line-height: 1.6;
+        resize: vertical;
+        outline: none;
+      }
+      .message-box textarea::placeholder {
+        color: var(--text3);
+      }
+      .message-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 16px;
+        border-top: 1px solid var(--border);
+      }
+      .char-count {
+        font-family: var(--mono);
+        font-size: 11px;
+        color: var(--text3);
+      }
+      .char-count.warn {
+        color: var(--amber);
+      }
+      .char-count.over {
+        color: var(--red);
+      }
 
-  .template-chips { display: flex; gap: 6px; flex-wrap: wrap; }
-  .chip {
-    padding: 4px 10px;
-    border-radius: 20px;
-    border: 1px solid var(--border);
-    font-size: 11px;
-    color: var(--text2);
-    cursor: pointer;
-    transition: all 0.15s;
-    white-space: nowrap;
-  }
-  .chip:hover { border-color: var(--accent); color: var(--accent); background: rgba(79,142,247,0.05); }
+      .template-chips {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+      .chip {
+        padding: 4px 10px;
+        border-radius: 20px;
+        border: 1px solid var(--border);
+        font-size: 11px;
+        color: var(--text2);
+        cursor: pointer;
+        transition: all 0.15s;
+        white-space: nowrap;
+      }
+      .chip:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+        background: rgba(79, 142, 247, 0.05);
+      }
 
-  .send-bar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 16px 28px;
-    border-top: 1px solid var(--border);
-    background: var(--bg2);
-  }
-  .send-info { font-family: var(--mono); font-size: 11px; color: var(--text3); }
+      .send-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 28px;
+        border-top: 1px solid var(--border);
+        background: var(--bg2);
+      }
+      .send-info {
+        font-family: var(--mono);
+        font-size: 11px;
+        color: var(--text3);
+      }
 
-  /* Progress bar */
-  .progress-section { padding: 0 28px 16px; display: none; }
-  .progress-section.visible { display: block; }
-  .progress-label { font-family: var(--mono); font-size: 11px; color: var(--text2); margin-bottom: 6px; display: flex; justify-content: space-between; }
-  .progress-track { height: 4px; background: var(--bg3); border-radius: 2px; overflow: hidden; }
-  .progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 2px; transition: width 0.3s; }
+      /* Progress bar */
+      .progress-section {
+        padding: 0 28px 16px;
+        display: none;
+      }
+      .progress-section.visible {
+        display: block;
+      }
+      .progress-label {
+        font-family: var(--mono);
+        font-size: 11px;
+        color: var(--text2);
+        margin-bottom: 6px;
+        display: flex;
+        justify-content: space-between;
+      }
+      .progress-track {
+        height: 4px;
+        background: var(--bg3);
+        border-radius: 2px;
+        overflow: hidden;
+      }
+      .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--accent), var(--accent2));
+        border-radius: 2px;
+        transition: width 0.3s;
+      }
 
-  /* ======== INBOX PANEL ======== */
-  #inbox { flex-direction: row; }
+      /* ======== INBOX PANEL ======== */
+      #inbox {
+        flex-direction: row;
+      }
 
-  .conversations-pane {
-    width: 300px;
-    flex-shrink: 0;
-    border-right: 1px solid var(--border);
-    display: flex;
-    flex-direction: column;
-    background: var(--bg2);
-    overflow: hidden;
-  }
+      .conversations-pane {
+        width: 300px;
+        flex-shrink: 0;
+        border-right: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        background: var(--bg2);
+        overflow: hidden;
+      }
 
-  .convo-list { flex: 1; overflow-y: auto; }
-  .convo-list::-webkit-scrollbar { width: 4px; }
-  .convo-list::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+      .convo-list {
+        flex: 1;
+        overflow-y: auto;
+      }
+      .convo-list::-webkit-scrollbar {
+        width: 4px;
+      }
+      .convo-list::-webkit-scrollbar-thumb {
+        background: var(--border2);
+        border-radius: 2px;
+      }
 
-  .convo-item {
-    padding: 12px 16px;
-    cursor: pointer;
-    border-bottom: 1px solid var(--border);
-    transition: background 0.1s;
-    display: flex;
-    gap: 10px;
-    align-items: flex-start;
-  }
-  .convo-item:hover { background: var(--bg3); }
-  .convo-item.active { background: var(--bg4); }
-  .convo-item.unread .convo-preview { color: var(--text); }
-  .convo-item.unread .convo-name { color: var(--text); font-weight: 600; }
+      .convo-item {
+        padding: 12px 16px;
+        cursor: pointer;
+        border-bottom: 1px solid var(--border);
+        transition: background 0.1s;
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+      }
+      .convo-item:hover {
+        background: var(--bg3);
+      }
+      .convo-item.active {
+        background: var(--bg4);
+      }
+      .convo-item.unread .convo-preview {
+        color: var(--text);
+      }
+      .convo-item.unread .convo-name {
+        color: var(--text);
+        font-weight: 600;
+      }
 
-  .convo-avatar {
-    width: 38px;
-    height: 38px;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-family: var(--mono);
-    font-size: 12px;
-    flex-shrink: 0;
-    position: relative;
-  }
-  .unread-dot {
-    position: absolute;
-    top: -2px;
-    right: -2px;
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--accent);
-    border: 2px solid var(--bg2);
-    display: none;
-  }
-  .convo-item.unread .unread-dot { display: block; }
+      .convo-avatar {
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--mono);
+        font-size: 12px;
+        flex-shrink: 0;
+        position: relative;
+      }
+      .unread-dot {
+        position: absolute;
+        top: -2px;
+        right: -2px;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--accent);
+        border: 2px solid var(--bg2);
+        display: none;
+      }
+      .convo-item.unread .unread-dot {
+        display: block;
+      }
 
-  .convo-meta { flex: 1; min-width: 0; }
-  .convo-top { display: flex; justify-content: space-between; align-items: baseline; }
-  .convo-name { font-size: 13px; font-weight: 500; color: var(--text2); }
-  .convo-time { font-family: var(--mono); font-size: 10px; color: var(--text3); }
-  .convo-preview { font-size: 12px; color: var(--text3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+      .convo-meta {
+        flex: 1;
+        min-width: 0;
+      }
+      .convo-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+      }
+      .convo-name {
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--text2);
+      }
+      .convo-time {
+        font-family: var(--mono);
+        font-size: 10px;
+        color: var(--text3);
+      }
+      .convo-preview {
+        font-size: 12px;
+        color: var(--text3);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin-top: 2px;
+      }
 
-  /* Thread view */
-  .thread-pane {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    background: var(--bg);
-    overflow: hidden;
-  }
+      /* Thread view */
+      .thread-pane {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        background: var(--bg);
+        overflow: hidden;
+      }
 
-  .thread-header {
-    padding: 16px 24px;
-    border-bottom: 1px solid var(--border);
-    background: var(--bg2);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-  .thread-contact { display: flex; align-items: center; gap: 12px; }
-  .thread-avatar { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 13px; }
-  .thread-name { font-family: var(--display); font-size: 15px; font-weight: 600; }
-  .thread-number { font-family: var(--mono); font-size: 11px; color: var(--text3); margin-top: 1px; }
-  .thread-actions { display: flex; gap: 6px; }
+      .thread-header {
+        padding: 16px 24px;
+        border-bottom: 1px solid var(--border);
+        background: var(--bg2);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .thread-contact {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .thread-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--mono);
+        font-size: 13px;
+      }
+      .thread-name {
+        font-family: var(--display);
+        font-size: 15px;
+        font-weight: 600;
+      }
+      .thread-number {
+        font-family: var(--mono);
+        font-size: 11px;
+        color: var(--text3);
+        margin-top: 1px;
+      }
+      .thread-actions {
+        display: flex;
+        gap: 6px;
+      }
 
-  .messages-area {
-    flex: 1;
-    overflow-y: auto;
-    padding: 24px 24px 8px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-  .messages-area::-webkit-scrollbar { width: 4px; }
-  .messages-area::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+      .messages-area {
+        flex: 1;
+        overflow-y: auto;
+        padding: 24px 24px 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .messages-area::-webkit-scrollbar {
+        width: 4px;
+      }
+      .messages-area::-webkit-scrollbar-thumb {
+        background: var(--border2);
+        border-radius: 2px;
+      }
 
-  .message-group { display: flex; flex-direction: column; gap: 4px; }
-  .message-group.inbound { align-items: flex-start; }
-  .message-group.outbound { align-items: flex-end; }
+      .message-group {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .message-group.inbound {
+        align-items: flex-start;
+      }
+      .message-group.outbound {
+        align-items: flex-end;
+      }
 
-  .bubble {
-    max-width: 70%;
-    padding: 10px 14px;
-    border-radius: 16px;
-    font-size: 14px;
-    line-height: 1.5;
-    word-break: break-word;
-  }
-  .inbound .bubble {
-    background: var(--bg3);
-    border: 1px solid var(--border);
-    color: var(--text);
-    border-bottom-left-radius: 4px;
-  }
-  .outbound .bubble {
-    background: var(--accent);
-    color: #fff;
-    border-bottom-right-radius: 4px;
-  }
+      .bubble {
+        max-width: 70%;
+        padding: 10px 14px;
+        border-radius: 16px;
+        font-size: 14px;
+        line-height: 1.5;
+        word-break: break-word;
+      }
+      .inbound .bubble {
+        background: var(--bg3);
+        border: 1px solid var(--border);
+        color: var(--text);
+        border-bottom-left-radius: 4px;
+      }
+      .outbound .bubble {
+        background: var(--accent);
+        color: #fff;
+        border-bottom-right-radius: 4px;
+      }
 
-  .bubble-time {
-    font-family: var(--mono);
-    font-size: 10px;
-    color: var(--text3);
-    padding: 0 4px;
-  }
+      .bubble-time {
+        font-family: var(--mono);
+        font-size: 10px;
+        color: var(--text3);
+        padding: 0 4px;
+      }
 
-  .date-divider {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin: 8px 0;
-  }
-  .date-divider::before, .date-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
-  .date-divider span { font-family: var(--mono); font-size: 10px; color: var(--text3); white-space: nowrap; }
+      .date-divider {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin: 8px 0;
+      }
+      .date-divider::before,
+      .date-divider::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: var(--border);
+      }
+      .date-divider span {
+        font-family: var(--mono);
+        font-size: 10px;
+        color: var(--text3);
+        white-space: nowrap;
+      }
 
-  .reply-area {
-    padding: 16px 24px;
-    border-top: 1px solid var(--border);
-    background: var(--bg2);
-    display: flex;
-    gap: 10px;
-    align-items: flex-end;
-  }
-  .reply-input-wrap {
-    flex: 1;
-    background: var(--bg3);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    overflow: hidden;
-    transition: border-color 0.15s;
-  }
-  .reply-input-wrap:focus-within { border-color: var(--border2); }
-  .reply-input-wrap textarea {
-    width: 100%;
-    min-height: 44px;
-    max-height: 120px;
-    background: transparent;
-    border: none;
-    color: var(--text);
-    padding: 11px 14px;
-    font-family: var(--sans);
-    font-size: 14px;
-    line-height: 1.4;
-    resize: none;
-    outline: none;
-    display: block;
-  }
-  .reply-input-wrap textarea::placeholder { color: var(--text3); }
+      .reply-area {
+        padding: 16px 24px;
+        border-top: 1px solid var(--border);
+        background: var(--bg2);
+        display: flex;
+        gap: 10px;
+        align-items: flex-end;
+      }
+      .reply-input-wrap {
+        flex: 1;
+        background: var(--bg3);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+        transition: border-color 0.15s;
+      }
+      .reply-input-wrap:focus-within {
+        border-color: var(--border2);
+      }
+      .reply-input-wrap textarea {
+        width: 100%;
+        min-height: 44px;
+        max-height: 120px;
+        background: transparent;
+        border: none;
+        color: var(--text);
+        padding: 11px 14px;
+        font-family: var(--sans);
+        font-size: 14px;
+        line-height: 1.4;
+        resize: none;
+        outline: none;
+        display: block;
+      }
+      .reply-input-wrap textarea::placeholder {
+        color: var(--text3);
+      }
 
-  .send-btn {
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
-    background: var(--accent);
-    border: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.15s;
-    flex-shrink: 0;
-  }
-  .send-btn:hover { background: #3a7ae0; transform: scale(1.05); }
-  .send-btn:active { transform: scale(0.95); }
-  .send-btn svg { width: 18px; height: 18px; fill: #fff; }
+      .send-btn {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        background: var(--accent);
+        border: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.15s;
+        flex-shrink: 0;
+      }
+      .send-btn:hover {
+        background: #3a7ae0;
+        transform: scale(1.05);
+      }
+      .send-btn:active {
+        transform: scale(0.95);
+      }
+      .send-btn svg {
+        width: 18px;
+        height: 18px;
+        fill: #fff;
+      }
 
-  .empty-thread {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    color: var(--text3);
-  }
-  .empty-thread svg { width: 48px; height: 48px; opacity: 0.3; }
-  .empty-thread p { font-size: 13px; }
+      .empty-thread {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        color: var(--text3);
+      }
+      .empty-thread svg {
+        width: 48px;
+        height: 48px;
+        opacity: 0.3;
+      }
+      .empty-thread p {
+        font-size: 13px;
+      }
 
-  /* ===== SETTINGS PANEL ===== */
-  #settings { flex-direction: column; overflow-y: auto; }
-  .settings-body { padding: 32px; max-width: 600px; }
-  .settings-section { margin-bottom: 32px; }
-  .settings-section-title {
-    font-family: var(--display);
-    font-size: 15px;
-    font-weight: 700;
-    margin-bottom: 16px;
-    color: var(--text);
-    border-bottom: 1px solid var(--border);
-    padding-bottom: 8px;
-  }
-  .settings-field { margin-bottom: 14px; }
-  .settings-field label { font-family: var(--mono); font-size: 11px; color: var(--text3); display: block; margin-bottom: 5px; }
-  .settings-field input, .settings-field select {
-    width: 100%;
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    color: var(--text);
-    padding: 9px 12px;
-    font-family: var(--mono);
-    font-size: 12px;
-    outline: none;
-    transition: border-color 0.15s;
-  }
-  .settings-field input:focus, .settings-field select:focus { border-color: var(--accent); }
-  .settings-field input[type="password"] { letter-spacing: 2px; }
-  .settings-hint { font-size: 11px; color: var(--text3); margin-top: 4px; }
-  .connect-result { margin-top: 10px; font-family: var(--mono); font-size: 12px; padding: 8px 12px; border-radius: 6px; display: none; }
-  .connect-result.ok { background: rgba(61,214,140,0.1); color: var(--green); display: block; }
-  .connect-result.err { background: rgba(240,82,82,0.1); color: var(--red); display: block; }
+      /* ===== SETTINGS PANEL ===== */
+      #settings {
+        flex-direction: column;
+        overflow-y: auto;
+      }
+      .settings-body {
+        padding: 32px;
+        max-width: 600px;
+      }
+      .settings-section {
+        margin-bottom: 32px;
+      }
+      .settings-section-title {
+        font-family: var(--display);
+        font-size: 15px;
+        font-weight: 700;
+        margin-bottom: 16px;
+        color: var(--text);
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 8px;
+      }
+      .settings-field {
+        margin-bottom: 14px;
+      }
+      .settings-field label {
+        font-family: var(--mono);
+        font-size: 11px;
+        color: var(--text3);
+        display: block;
+        margin-bottom: 5px;
+      }
+      .settings-field input,
+      .settings-field select {
+        width: 100%;
+        background: var(--bg2);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        color: var(--text);
+        padding: 9px 12px;
+        font-family: var(--mono);
+        font-size: 12px;
+        outline: none;
+        transition: border-color 0.15s;
+      }
+      .settings-field input:focus,
+      .settings-field select:focus {
+        border-color: var(--accent);
+      }
+      .settings-field input[type="password"] {
+        letter-spacing: 2px;
+      }
+      .settings-hint {
+        font-size: 11px;
+        color: var(--text3);
+        margin-top: 4px;
+      }
+      .connect-result {
+        margin-top: 10px;
+        font-family: var(--mono);
+        font-size: 12px;
+        padding: 8px 12px;
+        border-radius: 6px;
+        display: none;
+      }
+      .connect-result.ok {
+        background: rgba(61, 214, 140, 0.1);
+        color: var(--green);
+        display: block;
+      }
+      .connect-result.err {
+        background: rgba(240, 82, 82, 0.1);
+        color: var(--red);
+        display: block;
+      }
 
-  /* TOAST */
-  .toast-container { position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 8px; z-index: 9999; pointer-events: none; }
-  .toast {
-    background: var(--bg3);
-    border: 1px solid var(--border2);
-    border-radius: 8px;
-    padding: 10px 16px;
-    font-size: 13px;
-    color: var(--text);
-    animation: slideIn 0.2s ease;
-    max-width: 300px;
-  }
-  .toast.success { border-left: 3px solid var(--green); }
-  .toast.error { border-left: 3px solid var(--red); }
-  .toast.info { border-left: 3px solid var(--accent); }
-  @keyframes slideIn { from { transform: translateX(20px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+      /* TOAST */
+      .toast-container {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        z-index: 9999;
+        pointer-events: none;
+      }
+      .toast {
+        background: var(--bg3);
+        border: 1px solid var(--border2);
+        border-radius: 8px;
+        padding: 10px 16px;
+        font-size: 13px;
+        color: var(--text);
+        animation: slideIn 0.2s ease;
+        max-width: 300px;
+      }
+      .toast.success {
+        border-left: 3px solid var(--green);
+      }
+      .toast.error {
+        border-left: 3px solid var(--red);
+      }
+      .toast.info {
+        border-left: 3px solid var(--accent);
+      }
+      @keyframes slideIn {
+        from {
+          transform: translateX(20px);
+          opacity: 0;
+        }
+        to {
+          transform: translateX(0);
+          opacity: 1;
+        }
+      }
 
-  /* CSV Modal */
-  .modal-overlay {
-    position: fixed; inset: 0;
-    background: rgba(0,0,0,0.7);
-    z-index: 100;
-    display: none;
-    align-items: center;
-    justify-content: center;
-  }
-  .modal-overlay.open { display: flex; }
-  .modal {
-    background: var(--bg2);
-    border: 1px solid var(--border2);
-    border-radius: 12px;
-    padding: 28px;
-    width: 480px;
-    max-width: 95vw;
-  }
-  .modal-title { font-family: var(--display); font-size: 16px; font-weight: 700; margin-bottom: 6px; }
-  .modal-sub { font-size: 12px; color: var(--text3); margin-bottom: 20px; }
-  .dropzone {
-    border: 2px dashed var(--border2);
-    border-radius: 8px;
-    padding: 32px;
-    text-align: center;
-    color: var(--text3);
-    cursor: pointer;
-    transition: all 0.2s;
-    font-size: 13px;
-  }
-  .dropzone:hover, .dropzone.drag { border-color: var(--accent); color: var(--accent); background: rgba(79,142,247,0.05); }
-  .dropzone input { display: none; }
-  .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+      /* CSV Modal */
+      .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.7);
+        z-index: 100;
+        display: none;
+        align-items: center;
+        justify-content: center;
+      }
+      .modal-overlay.open {
+        display: flex;
+      }
+      .modal {
+        background: var(--bg2);
+        border: 1px solid var(--border2);
+        border-radius: 12px;
+        padding: 28px;
+        width: 480px;
+        max-width: 95vw;
+      }
+      .modal-title {
+        font-family: var(--display);
+        font-size: 16px;
+        font-weight: 700;
+        margin-bottom: 6px;
+      }
+      .modal-sub {
+        font-size: 12px;
+        color: var(--text3);
+        margin-bottom: 20px;
+      }
+      .dropzone {
+        border: 2px dashed var(--border2);
+        border-radius: 8px;
+        padding: 32px;
+        text-align: center;
+        color: var(--text3);
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 13px;
+      }
+      .dropzone:hover,
+      .dropzone.drag {
+        border-color: var(--accent);
+        color: var(--accent);
+        background: rgba(79, 142, 247, 0.05);
+      }
+      .dropzone input {
+        display: none;
+      }
+      .modal-actions {
+        display: flex;
+        gap: 8px;
+        justify-content: flex-end;
+        margin-top: 16px;
+      }
 
-  .add-manual { margin-top: 16px; border-top: 1px solid var(--border); padding-top: 16px; }
-  .add-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
-  .add-row input {
-    background: var(--bg3);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    color: var(--text);
-    padding: 8px 10px;
-    font-family: var(--sans);
-    font-size: 13px;
-    outline: none;
-  }
-  .add-row input:focus { border-color: var(--accent); }
+      .add-manual {
+        margin-top: 16px;
+        border-top: 1px solid var(--border);
+        padding-top: 16px;
+      }
+      .add-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin-bottom: 8px;
+      }
+      .add-row input {
+        background: var(--bg3);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        color: var(--text);
+        padding: 8px 10px;
+        font-family: var(--sans);
+        font-size: 13px;
+        outline: none;
+      }
+      .add-row input:focus {
+        border-color: var(--accent);
+      }
 
-  /* Avatars color pool */
-  .av0 { background: rgba(79,142,247,0.15); color: var(--accent); }
-  .av1 { background: rgba(124,106,247,0.15); color: var(--accent2); }
-  .av2 { background: rgba(61,214,140,0.15); color: var(--green); }
-  .av3 { background: rgba(245,166,35,0.15); color: var(--amber); }
-  .av4 { background: rgba(240,82,82,0.15); color: var(--red); }
+      /* Avatars color pool */
+      .av0 {
+        background: rgba(79, 142, 247, 0.15);
+        color: var(--accent);
+      }
+      .av1 {
+        background: rgba(124, 106, 247, 0.15);
+        color: var(--accent2);
+      }
+      .av2 {
+        background: rgba(61, 214, 140, 0.15);
+        color: var(--green);
+      }
+      .av3 {
+        background: rgba(245, 166, 35, 0.15);
+        color: var(--amber);
+      }
+      .av4 {
+        background: rgba(240, 82, 82, 0.15);
+        color: var(--red);
+      }
 
-  /* Responsive scroll for main panels */
-  #dispatch, #inbox { min-height: 0; }
-  .recipients-list, .convo-list, .messages-area { scrollbar-width: thin; scrollbar-color: var(--border2) transparent; }
-</style>
-</head>
-<body>
-
-<div class="security-banner">Production safety mode: do not enter RingCentral secrets or JWTs in this browser-only prototype. Configure a backend SMS proxy before using real credentials or customer data.</div>
-
-<header>
-  <div class="logo">
-    <div class="logo-dot"></div>
-    SignalSend
-  </div>
-  <div class="rc-status" id="rcStatus">
-    <div class="dot"></div>
-    <span id="rcStatusText">Not connected</span>
-  </div>
-</header>
-
-<div class="tabs">
-  <div class="tab active" data-tab="dispatch" onclick="switchTab('dispatch')">
-    ⚡ Dispatch
-  </div>
-  <div class="tab" data-tab="inbox" onclick="switchTab('inbox')">
-    💬 Inbox
-    <span class="badge" id="inboxBadge">0</span>
-  </div>
-  <div class="tab" data-tab="settings" onclick="switchTab('settings')">
-    ⚙ Settings
-  </div>
-</div>
-
-<!-- ===== DISPATCH TAB ===== -->
-<div class="panel active" id="dispatch">
-  <!-- Recipients -->
-  <div class="recipients-pane">
-    <div class="pane-header">
-      <span class="pane-title">Recipients</span>
-      <span class="pane-count" id="recipientCount">0 contacts</span>
+      /* Responsive scroll for main panels */
+      #dispatch,
+      #inbox {
+        min-height: 0;
+      }
+      .recipients-list,
+      .convo-list,
+      .messages-area {
+        scrollbar-width: thin;
+        scrollbar-color: var(--border2) transparent;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="security-banner">
+      Production safety mode: do not enter RingCentral secrets or JWTs in this
+      browser-only prototype. Configure a backend SMS proxy before using real
+      credentials or customer data.
     </div>
-    <div class="search-bar">
-      <input type="text" placeholder="Search contacts..." oninput="filterRecipients(this.value)" />
-    </div>
-    <div class="recipients-list" id="recipientList"></div>
-    <div class="import-bar">
-      <button class="btn" onclick="openImport()">📁 Import CSV</button>
-      <button class="btn" onclick="selectAll()">Select All</button>
-      <button class="btn danger sm" onclick="clearContacts()" title="Clear all">✕</button>
-    </div>
-  </div>
 
-  <!-- Compose -->
-  <div class="compose-pane">
-    <div class="compose-header">
-      <div class="compose-label">Compose Message</div>
-      <div class="compose-summary">Sending to <span id="selectedCount">0</span> selected recipients</div>
-    </div>
-    <div class="compose-body">
-      <div class="field-group">
-        <div class="field-label">FROM NUMBER</div>
-        <select class="from-select" id="fromNumber">
-          <option value="">— Connect RingCentral to load numbers —</option>
-        </select>
+    <header>
+      <div class="logo">
+        <div class="logo-dot"></div>
+        SignalSend
       </div>
-      <div class="field-group">
-        <div class="field-label">MESSAGE</div>
-        <div class="message-box">
-          <textarea id="messageText" placeholder="Type your message here... Use {name} to personalize with recipient's name, {business} for their business name." oninput="updateCharCount()"></textarea>
-          <div class="message-footer">
-            <div class="template-chips">
-              <span class="chip" onclick="insertTemplate('Hi {name}, just checking in from our team!')">Hi {name}...</span>
-              <span class="chip" onclick="insertTemplate('Hello {business}! We have a special offer for you.')">Special offer</span>
-              <span class="chip" onclick="insertTemplate('Reminder: your appointment is coming up. Reply to confirm.')">Reminder</span>
+      <div class="rc-status" id="rcStatus">
+        <div class="dot"></div>
+        <span id="rcStatusText">Not connected</span>
+      </div>
+    </header>
+
+    <div class="tabs">
+      <div
+        class="tab active"
+        data-tab="dispatch"
+        onclick="switchTab('dispatch')"
+      >
+        ⚡ Dispatch
+      </div>
+      <div class="tab" data-tab="inbox" onclick="switchTab('inbox')">
+        💬 Inbox
+        <span class="badge" id="inboxBadge">0</span>
+      </div>
+      <div class="tab" data-tab="settings" onclick="switchTab('settings')">
+        ⚙ Settings
+      </div>
+    </div>
+
+    <!-- ===== DISPATCH TAB ===== -->
+    <div class="panel active" id="dispatch">
+      <!-- Recipients -->
+      <div class="recipients-pane">
+        <div class="pane-header">
+          <span class="pane-title">Recipients</span>
+          <span class="pane-count" id="recipientCount">0 contacts</span>
+        </div>
+        <div class="search-bar">
+          <input
+            type="text"
+            placeholder="Search contacts..."
+            oninput="filterRecipients(this.value)"
+          />
+        </div>
+        <div class="recipients-list" id="recipientList"></div>
+        <div class="import-bar">
+          <button class="btn" onclick="openImport()">📁 Import CSV</button>
+          <button class="btn" onclick="selectAll()">Select All</button>
+          <button
+            class="btn danger sm"
+            onclick="clearContacts()"
+            title="Clear all"
+          >
+            ✕
+          </button>
+        </div>
+      </div>
+
+      <!-- Compose -->
+      <div class="compose-pane">
+        <div class="compose-header">
+          <div class="compose-label">Compose Message</div>
+          <div class="compose-summary">
+            Sending to <span id="selectedCount">0</span> selected recipients
+          </div>
+        </div>
+        <div class="compose-body">
+          <div class="field-group">
+            <div class="field-label">FROM NUMBER</div>
+            <select class="from-select" id="fromNumber">
+              <option value="">— Connect RingCentral to load numbers —</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <div class="field-label">MESSAGE</div>
+            <div class="message-box">
+              <textarea
+                id="messageText"
+                placeholder="Type your message here... Use {name} to personalize with recipient's name, {business} for their business name."
+                oninput="updateCharCount()"
+              ></textarea>
+              <div class="message-footer">
+                <div class="template-chips">
+                  <span
+                    class="chip"
+                    onclick="
+                      insertTemplate(
+                        'Hi {name}, just checking in from our team!',
+                      )
+                    "
+                    >Hi {name}...</span
+                  >
+                  <span
+                    class="chip"
+                    onclick="
+                      insertTemplate(
+                        'Hello {business}! We have a special offer for you.',
+                      )
+                    "
+                    >Special offer</span
+                  >
+                  <span
+                    class="chip"
+                    onclick="
+                      insertTemplate(
+                        'Reminder: your appointment is coming up. Reply to confirm.',
+                      )
+                    "
+                    >Reminder</span
+                  >
+                </div>
+                <div class="char-count" id="charCount">0 / 160</div>
+              </div>
             </div>
-            <div class="char-count" id="charCount">0 / 160</div>
+          </div>
+        </div>
+        <div class="progress-section" id="progressSection">
+          <div class="progress-label">
+            <span id="progressLabel">Sending...</span>
+            <span id="progressPct">0%</span>
+          </div>
+          <div class="progress-track">
+            <div
+              class="progress-fill"
+              id="progressFill"
+              style="width: 0%"
+            ></div>
+          </div>
+        </div>
+        <div class="send-bar">
+          <div class="send-info" id="sendInfo">
+            Select recipients and compose a message
+          </div>
+          <button class="btn primary" id="sendBtn" onclick="sendMessages()">
+            ⚡ Send to <span id="sendBtnCount">0</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== INBOX TAB ===== -->
+    <div class="panel" id="inbox">
+      <div class="conversations-pane">
+        <div class="pane-header">
+          <span class="pane-title">Conversations</span>
+          <button class="btn sm" onclick="refreshInbox()">↻ Refresh</button>
+        </div>
+        <div class="search-bar">
+          <input
+            type="text"
+            placeholder="Search conversations..."
+            oninput="filterConversations(this.value)"
+          />
+        </div>
+        <div class="convo-list" id="convoList">
+          <div
+            style="
+              padding: 24px 16px;
+              text-align: center;
+              color: var(--text3);
+              font-size: 12px;
+            "
+          >
+            No conversations yet.<br />Send some messages first.
+          </div>
+        </div>
+      </div>
+      <div class="thread-pane" id="threadPane">
+        <div class="empty-thread">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+          >
+            <path
+              d="M20 2H4a2 2 0 00-2 2v16l4-4h14a2 2 0 002-2V4a2 2 0 00-2-2z"
+            />
+          </svg>
+          <p>Select a conversation</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== SETTINGS TAB ===== -->
+    <div class="panel" id="settings">
+      <div class="settings-body">
+        <div class="settings-section">
+          <div class="settings-section-title">
+            RingCentral API / Backend Proxy
+          </div>
+          <div class="settings-field">
+            <label>CLIENT ID</label>
+            <input
+              type="text"
+              id="rcClientId"
+              placeholder="Do not use in production browser builds"
+              autocomplete="off"
+            />
+          </div>
+          <div class="settings-field">
+            <label>CLIENT SECRET</label>
+            <input
+              type="password"
+              id="rcClientSecret"
+              placeholder="Use a backend secret store instead"
+              autocomplete="off"
+            />
+          </div>
+          <div class="settings-field">
+            <label>JWT TOKEN (Recommended for server-to-server)</label>
+            <input
+              type="password"
+              id="rcJwt"
+              placeholder="Use only for local sandbox testing"
+              autocomplete="off"
+            />
+            <div class="settings-hint">
+              Generate a JWT in your RingCentral Developer Console under your
+              app credentials.
+            </div>
+          </div>
+          <div class="settings-field">
+            <label>ACCOUNT PHONE NUMBER</label>
+            <input type="text" id="rcPhone" placeholder="+18005551234" />
+            <div class="settings-hint">
+              The main number on your RingCentral account.
+            </div>
+          </div>
+          <div class="settings-field">
+            <label>ENVIRONMENT</label>
+            <select id="rcEnv">
+              <option value="production">
+                Production (platform.ringcentral.com)
+              </option>
+              <option value="sandbox">
+                Sandbox (platform.devtest.ringcentral.com)
+              </option>
+            </select>
+          </div>
+          <div class="settings-field">
+            <label>BACKEND SMS PROXY URL</label>
+            <input
+              type="url"
+              id="backendProxyUrl"
+              placeholder="https://your-api.example.com"
+              autocomplete="off"
+            />
+            <div class="settings-hint">
+              Recommended: authenticate with your backend, then let the backend
+              hold RingCentral credentials, send SMS, refresh tokens, enforce
+              opt-outs, rate limits, and audit logs.
+            </div>
+          </div>
+          <button class="btn primary" onclick="saveAndConnect()">
+            Connect
+          </button>
+          <div class="connect-result" id="connectResult"></div>
+        </div>
+        <div class="settings-section">
+          <div class="settings-section-title">Sending Preferences</div>
+          <div class="settings-field">
+            <label>DELAY BETWEEN MESSAGES (ms)</label>
+            <input
+              type="number"
+              id="sendDelay"
+              value="1000"
+              min="200"
+              max="5000"
+            />
+            <div class="settings-hint">
+              RingCentral rate limit: ~1 SMS per second. Recommended: 1000ms+.
+            </div>
+          </div>
+        </div>
+        <div class="settings-section">
+          <div class="settings-section-title">CSV Format Guide</div>
+          <div
+            style="
+              background: var(--bg2);
+              border: 1px solid var(--border);
+              border-radius: 8px;
+              padding: 16px;
+              font-family: var(--mono);
+              font-size: 12px;
+              color: var(--text2);
+              line-height: 1.8;
+            "
+          >
+            name,phone,business<br />
+            John Smith,+18645551234,Smith Hardware<br />
+            Jane Doe,+18645559876,Doe Consulting<br />
+            <br />
+            <span style="color: var(--text3)"
+              >— phone must include country code (+1 for US)<br />
+              — business column is optional<br />
+              — headers are case-insensitive</span
+            >
           </div>
         </div>
       </div>
     </div>
-    <div class="progress-section" id="progressSection">
-      <div class="progress-label">
-        <span id="progressLabel">Sending...</span>
-        <span id="progressPct">0%</span>
-      </div>
-      <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
-    </div>
-    <div class="send-bar">
-      <div class="send-info" id="sendInfo">Select recipients and compose a message</div>
-      <button class="btn primary" id="sendBtn" onclick="sendMessages()">
-        ⚡ Send to <span id="sendBtnCount">0</span>
-      </button>
-    </div>
-  </div>
-</div>
 
-<!-- ===== INBOX TAB ===== -->
-<div class="panel" id="inbox">
-  <div class="conversations-pane">
-    <div class="pane-header">
-      <span class="pane-title">Conversations</span>
-      <button class="btn sm" onclick="refreshInbox()">↻ Refresh</button>
-    </div>
-    <div class="search-bar">
-      <input type="text" placeholder="Search conversations..." oninput="filterConversations(this.value)" />
-    </div>
-    <div class="convo-list" id="convoList">
-      <div style="padding:24px 16px; text-align:center; color:var(--text3); font-size:12px;">No conversations yet.<br>Send some messages first.</div>
-    </div>
-  </div>
-  <div class="thread-pane" id="threadPane">
-    <div class="empty-thread">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 2H4a2 2 0 00-2 2v16l4-4h14a2 2 0 002-2V4a2 2 0 00-2-2z"/></svg>
-      <p>Select a conversation</p>
-    </div>
-  </div>
-</div>
-
-<!-- ===== SETTINGS TAB ===== -->
-<div class="panel" id="settings">
-  <div class="settings-body">
-    <div class="settings-section">
-      <div class="settings-section-title">RingCentral API / Backend Proxy</div>
-      <div class="settings-field">
-        <label>CLIENT ID</label>
-        <input type="text" id="rcClientId" placeholder="Do not use in production browser builds" autocomplete="off" />
-      </div>
-      <div class="settings-field">
-        <label>CLIENT SECRET</label>
-        <input type="password" id="rcClientSecret" placeholder="Use a backend secret store instead" autocomplete="off" />
-      </div>
-      <div class="settings-field">
-        <label>JWT TOKEN (Recommended for server-to-server)</label>
-        <input type="password" id="rcJwt" placeholder="Use only for local sandbox testing" autocomplete="off" />
-        <div class="settings-hint">Generate a JWT in your RingCentral Developer Console under your app credentials.</div>
-      </div>
-      <div class="settings-field">
-        <label>ACCOUNT PHONE NUMBER</label>
-        <input type="text" id="rcPhone" placeholder="+18005551234" />
-        <div class="settings-hint">The main number on your RingCentral account.</div>
-      </div>
-      <div class="settings-field">
-        <label>ENVIRONMENT</label>
-        <select id="rcEnv">
-          <option value="production">Production (platform.ringcentral.com)</option>
-          <option value="sandbox">Sandbox (platform.devtest.ringcentral.com)</option>
-        </select>
-      </div>
-      <div class="settings-field">
-        <label>BACKEND SMS PROXY URL</label>
-        <input type="url" id="backendProxyUrl" placeholder="https://your-api.example.com" autocomplete="off" />
-        <div class="settings-hint">Recommended: authenticate with your backend, then let the backend hold RingCentral credentials, send SMS, refresh tokens, enforce opt-outs, rate limits, and audit logs.</div>
-      </div>
-      <button class="btn primary" onclick="saveAndConnect()">Connect</button>
-      <div class="connect-result" id="connectResult"></div>
-    </div>
-    <div class="settings-section">
-      <div class="settings-section-title">Sending Preferences</div>
-      <div class="settings-field">
-        <label>DELAY BETWEEN MESSAGES (ms)</label>
-        <input type="number" id="sendDelay" value="1000" min="200" max="5000" />
-        <div class="settings-hint">RingCentral rate limit: ~1 SMS per second. Recommended: 1000ms+.</div>
+    <!-- CSV Import Modal -->
+    <div class="modal-overlay" id="importModal">
+      <div class="modal">
+        <div class="modal-title">Import Contacts</div>
+        <div class="modal-sub">Upload a CSV file or add contacts manually</div>
+        <div
+          class="dropzone"
+          id="dropzone"
+          onclick="document.getElementById('csvFile').click()"
+        >
+          <input
+            type="file"
+            id="csvFile"
+            accept=".csv,text/csv"
+            onchange="handleCSV(event)"
+          />
+          <div>📁 Click or drag a CSV file here</div>
+          <div style="font-size: 11px; margin-top: 4px">
+            name, phone, business columns supported
+          </div>
+        </div>
+        <div class="add-manual">
+          <div
+            style="
+              font-size: 12px;
+              color: var(--text3);
+              margin-bottom: 8px;
+              font-family: var(--mono);
+            "
+          >
+            ADD MANUALLY
+          </div>
+          <div class="add-row">
+            <input type="text" id="manualName" placeholder="Name" />
+            <input
+              type="text"
+              id="manualBusiness"
+              placeholder="Business (optional)"
+            />
+          </div>
+          <div class="add-row" style="grid-template-columns: 1fr auto">
+            <input type="text" id="manualPhone" placeholder="+18645551234" />
+            <button class="btn primary" onclick="addManual()">Add</button>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn" onclick="closeImport()">Done</button>
+        </div>
       </div>
     </div>
-    <div class="settings-section">
-      <div class="settings-section-title">CSV Format Guide</div>
-      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px;font-family:var(--mono);font-size:12px;color:var(--text2);line-height:1.8;">
-        name,phone,business<br>
-        John Smith,+18645551234,Smith Hardware<br>
-        Jane Doe,+18645559876,Doe Consulting<br>
-        <br>
-        <span style="color:var(--text3)">— phone must include country code (+1 for US)<br>
-        — business column is optional<br>
-        — headers are case-insensitive</span>
-      </div>
-    </div>
-  </div>
-</div>
 
-<!-- CSV Import Modal -->
-<div class="modal-overlay" id="importModal">
-  <div class="modal">
-    <div class="modal-title">Import Contacts</div>
-    <div class="modal-sub">Upload a CSV file or add contacts manually</div>
-    <div class="dropzone" id="dropzone" onclick="document.getElementById('csvFile').click()">
-      <input type="file" id="csvFile" accept=".csv,text/csv" onchange="handleCSV(event)" />
-      <div>📁 Click or drag a CSV file here</div>
-      <div style="font-size:11px;margin-top:4px;">name, phone, business columns supported</div>
-    </div>
-    <div class="add-manual">
-      <div style="font-size:12px;color:var(--text3);margin-bottom:8px;font-family:var(--mono);">ADD MANUALLY</div>
-      <div class="add-row">
-        <input type="text" id="manualName" placeholder="Name" />
-        <input type="text" id="manualBusiness" placeholder="Business (optional)" />
-      </div>
-      <div class="add-row" style="grid-template-columns: 1fr auto;">
-        <input type="text" id="manualPhone" placeholder="+18645551234" />
-        <button class="btn primary" onclick="addManual()">Add</button>
-      </div>
-    </div>
-    <div class="modal-actions">
-      <button class="btn" onclick="closeImport()">Done</button>
-    </div>
-  </div>
-</div>
+    <div class="toast-container" id="toastContainer"></div>
 
-<div class="toast-container" id="toastContainer"></div>
+    <script>
+      // ===== STATE =====
+      let contacts = [];
+      let conversations = {};
+      let activeConvo = null;
+      let rcConfig = null;
+      let rcToken = null;
+      let unreadCount = 0;
 
-<script>
-// ===== STATE =====
-let contacts = [];
-let conversations = {};
-let activeConvo = null;
-let rcConfig = null;
-let rcToken = null;
-let unreadCount = 0;
+      const AVATAR_COLORS = ["av0", "av1", "av2", "av3", "av4"];
 
-const AVATAR_COLORS = ['av0','av1','av2','av3','av4'];
+      function escapeHtml(value) {
+        return String(value ?? "").replace(
+          /[&<>"']/g,
+          (ch) =>
+            ({
+              "&": "&amp;",
+              "<": "&lt;",
+              ">": "&gt;",
+              '"': "&quot;",
+              "'": "&#39;",
+            })[ch],
+        );
+      }
 
-function escapeHtml(value) {
-  return String(value ?? '').replace(/[&<>"']/g, ch => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-  }[ch]));
-}
+      function attrEscape(value) {
+        return escapeHtml(value).replace(/`/g, "&#96;");
+      }
 
-function attrEscape(value) {
-  return escapeHtml(value).replace(/`/g, '&#96;');
-}
+      function normalizePhone(raw) {
+        const cleaned = String(raw ?? "")
+          .trim()
+          .replace(/[()\s.-]/g, "");
+        return cleaned.startsWith("+")
+          ? "+" + cleaned.slice(1).replace(/\D/g, "")
+          : cleaned.replace(/\D/g, "");
+      }
 
-function normalizePhone(raw) {
-  const cleaned = String(raw ?? '').trim().replace(/[()\s.-]/g, '');
-  return cleaned.startsWith('+') ? '+' + cleaned.slice(1).replace(/\D/g, '') : cleaned.replace(/\D/g, '');
-}
+      function isValidPhone(raw) {
+        return /^\+?[1-9]\d{9,14}$/.test(normalizePhone(raw));
+      }
 
-function isValidPhone(raw) {
-  return /^\+?[1-9]\d{9,14}$/.test(normalizePhone(raw));
-}
+      function avClass(idx) {
+        return AVATAR_COLORS[idx % AVATAR_COLORS.length];
+      }
+      function initials(name) {
+        return (
+          name
+            .split(" ")
+            .slice(0, 2)
+            .map((w) => w[0] || "")
+            .join("")
+            .toUpperCase() || "?"
+        );
+      }
+      function formatPhone(p) {
+        return normalizePhone(p);
+      }
+      function timeAgo(ts) {
+        const d = new Date(ts),
+          now = new Date();
+        const diff = now - d;
+        if (diff < 60000) return "just now";
+        if (diff < 3600000) return Math.floor(diff / 60000) + "m ago";
+        if (diff < 86400000) return Math.floor(diff / 3600000) + "h ago";
+        return d.toLocaleDateString();
+      }
+      function formatTime(ts) {
+        return new Date(ts).toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+      }
 
-function avClass(idx) { return AVATAR_COLORS[idx % AVATAR_COLORS.length]; }
-function initials(name) {
-  return name.split(' ').slice(0,2).map(w=>w[0]||'').join('').toUpperCase() || '?';
-}
-function formatPhone(p) { return normalizePhone(p); }
-function timeAgo(ts) {
-  const d = new Date(ts), now = new Date();
-  const diff = now - d;
-  if(diff < 60000) return 'just now';
-  if(diff < 3600000) return Math.floor(diff/60000)+'m ago';
-  if(diff < 86400000) return Math.floor(diff/3600000)+'h ago';
-  return d.toLocaleDateString();
-}
-function formatTime(ts) {
-  return new Date(ts).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
-}
+      // ===== TABS =====
+      function switchTab(id) {
+        document
+          .querySelectorAll(".tab")
+          .forEach((t) => t.classList.toggle("active", t.dataset.tab === id));
+        document
+          .querySelectorAll(".panel")
+          .forEach((p) => p.classList.toggle("active", p.id === id));
+        if (id === "inbox") {
+          unreadCount = 0;
+          updateBadge();
+        }
+      }
 
-// ===== TABS =====
-function switchTab(id) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === id));
-  document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === id));
-  if(id === 'inbox') { unreadCount = 0; updateBadge(); }
-}
+      function updateBadge() {
+        const b = document.getElementById("inboxBadge");
+        b.textContent = unreadCount;
+        b.classList.toggle("visible", unreadCount > 0);
+      }
 
-function updateBadge() {
-  const b = document.getElementById('inboxBadge');
-  b.textContent = unreadCount;
-  b.classList.toggle('visible', unreadCount > 0);
-}
-
-// ===== CONTACTS / RECIPIENTS =====
-function renderRecipients(filter='') {
-  const list = document.getElementById('recipientList');
-  const filtered = contacts.filter(c =>
-    c.name.toLowerCase().includes(filter.toLowerCase()) ||
-    (c.business||'').toLowerCase().includes(filter.toLowerCase()) ||
-    c.phone.includes(filter)
-  );
-  if(!filtered.length) {
-    list.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text3);font-size:12px;">No contacts. Import a CSV or add manually.</div>';
-    return;
-  }
-  list.innerHTML = filtered.map((c,i) => {
-    const safePhone = attrEscape(c.phone);
-    const safeName = escapeHtml(c.name);
-    const safeBusiness = c.business ? ' — ' + escapeHtml(c.business) : '';
-    const safeStatus = c.lastStatus && ['sent','pending','failed'].includes(c.lastStatus)
-      ? `<span class="recipient-status ${c.lastStatus}">${c.lastStatus}</span>`
-      : '';
-    return `
-    <div class="recipient-item ${c.selected?'selected':''}" onclick="toggleRecipient('${safePhone}')">
-      <div class="recipient-check ${c.selected?'checked':''}"></div>
+      // ===== CONTACTS / RECIPIENTS =====
+      function renderRecipients(filter = "") {
+        const list = document.getElementById("recipientList");
+        const filtered = contacts.filter(
+          (c) =>
+            c.name.toLowerCase().includes(filter.toLowerCase()) ||
+            (c.business || "").toLowerCase().includes(filter.toLowerCase()) ||
+            c.phone.includes(filter),
+        );
+        if (!filtered.length) {
+          list.innerHTML =
+            '<div style="padding:24px;text-align:center;color:var(--text3);font-size:12px;">No contacts. Import a CSV or add manually.</div>';
+          return;
+        }
+        list.innerHTML = filtered
+          .map((c, i) => {
+            const safePhone = attrEscape(c.phone);
+            const safeName = escapeHtml(c.name);
+            const safeBusiness = c.business
+              ? " — " + escapeHtml(c.business)
+              : "";
+            const safeStatus =
+              c.lastStatus &&
+              ["sent", "pending", "failed"].includes(c.lastStatus)
+                ? `<span class="recipient-status ${c.lastStatus}">${c.lastStatus}</span>`
+                : "";
+            return `
+    <div class="recipient-item ${c.selected ? "selected" : ""}" onclick="toggleRecipient('${safePhone}')">
+      <div class="recipient-check ${c.selected ? "checked" : ""}"></div>
       <div class="recipient-avatar ${avClass(c._idx)}">${escapeHtml(initials(c.name))}</div>
       <div class="recipient-info">
         <div class="recipient-name">${safeName}${safeBusiness}</div>
@@ -990,343 +1607,489 @@ function renderRecipients(filter='') {
       </div>
       ${safeStatus}
     </div>`;
-  }).join('');
-  document.getElementById('recipientCount').textContent = contacts.length + ' contact' + (contacts.length!==1?'s':'');
-}
-
-function filterRecipients(v) { renderRecipients(v); }
-
-function toggleRecipient(phone) {
-  const c = contacts.find(c=>c.phone===phone);
-  if(c) { c.selected = !c.selected; renderRecipients(); updateSelectedCount(); }
-}
-
-function selectAll() {
-  const allSelected = contacts.every(c=>c.selected);
-  contacts.forEach(c=>c.selected = !allSelected);
-  renderRecipients();
-  updateSelectedCount();
-}
-
-function updateSelectedCount() {
-  const n = contacts.filter(c=>c.selected).length;
-  document.getElementById('selectedCount').textContent = n;
-  document.getElementById('sendBtnCount').textContent = n;
-  document.getElementById('sendInfo').textContent = n ? `Ready to send to ${n} recipient${n!==1?'s':''}` : 'Select recipients and compose a message';
-}
-
-function clearContacts() {
-  if(!confirm('Clear all contacts?')) return;
-  contacts = [];
-  renderRecipients();
-  updateSelectedCount();
-}
-
-// ===== CSV IMPORT =====
-function openImport() { document.getElementById('importModal').classList.add('open'); }
-function closeImport() { document.getElementById('importModal').classList.remove('open'); }
-
-function handleCSV(e) {
-  const file = e.target.files[0];
-  if(!file) return;
-  const reader = new FileReader();
-  reader.onload = ev => parseCSV(ev.target.result);
-  reader.readAsText(file);
-  e.target.value = '';
-}
-
-function parseCSV(text) {
-  if(!window.Papa) {
-    toast('CSV parser failed to load. Check your network and try again.', 'error');
-    return;
-  }
-
-  const parsed = Papa.parse(text, {
-    header: true,
-    skipEmptyLines: true,
-    transformHeader: h => String(h || '').trim().toLowerCase(),
-    transform: v => typeof v === 'string' ? v.trim() : v
-  });
-
-  if(parsed.errors?.length) {
-    const first = parsed.errors[0];
-    toast(`CSV parse warning on row ${first.row ?? '?'}: ${first.message}`, 'info');
-  }
-
-  const rows = parsed.data || [];
-  if(!rows.length) { toast('CSV has no contact rows', 'error'); return; }
-
-  let added = 0, skipped = 0;
-  rows.forEach(row => {
-    const phoneKey = Object.keys(row).find(k => k.includes('phone') || k.includes('number'));
-    const nameKey = Object.keys(row).find(k => k.includes('name'));
-    const bizKey = Object.keys(row).find(k => k.includes('business') || k.includes('company') || k.includes('biz'));
-    const phone = formatPhone(row[phoneKey] || '');
-    if(!isValidPhone(phone)) { skipped++; return; }
-    const name = String(row[nameKey] || phone).slice(0, 120);
-    const business = bizKey ? String(row[bizKey] || '').slice(0, 160) : '';
-    if(!contacts.find(c=>c.phone===phone)) {
-      contacts.push({ name, phone, business, selected: true, _idx: contacts.length });
-      added++;
-    } else {
-      skipped++;
-    }
-  });
-
-  renderRecipients();
-  updateSelectedCount();
-  toast(`Imported ${added} contacts${skipped ? ` · ${skipped} skipped` : ''}`, added ? 'success' : 'info');
-}
-
-function addManual() {
-  const name = document.getElementById('manualName').value.trim();
-  const phone = formatPhone(document.getElementById('manualPhone').value.trim());
-  const business = document.getElementById('manualBusiness').value.trim();
-  if(!name || !isValidPhone(phone)) { toast('Enter name and valid E.164-style phone','error'); return; }
-  if(contacts.find(c=>c.phone===phone)) { toast('Phone already exists','info'); return; }
-  contacts.push({ name, phone, business, selected: true, _idx: contacts.length });
-  document.getElementById('manualName').value = '';
-  document.getElementById('manualPhone').value = '';
-  document.getElementById('manualBusiness').value = '';
-  renderRecipients();
-  updateSelectedCount();
-  toast('Contact added','success');
-}
-
-// Drag & Drop
-const dz = document.getElementById('dropzone');
-dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag'); });
-dz.addEventListener('dragleave', () => dz.classList.remove('drag'));
-dz.addEventListener('drop', e => {
-  e.preventDefault(); dz.classList.remove('drag');
-  const file = e.dataTransfer.files[0];
-  if(file) { const r = new FileReader(); r.onload = ev => parseCSV(ev.target.result); r.readAsText(file); }
-});
-
-// ===== COMPOSE =====
-function updateCharCount() {
-  const msg = document.getElementById('messageText').value;
-  const el = document.getElementById('charCount');
-  const msgs = Math.ceil(msg.length/160) || 1;
-  el.textContent = `${msg.length} / ${msgs * 160} (${msgs} SMS)`;
-  el.className = 'char-count' + (msg.length > 320 ? ' over' : msg.length > 140 ? ' warn' : '');
-}
-
-function insertTemplate(t) {
-  document.getElementById('messageText').value = t;
-  updateCharCount();
-}
-
-// ===== SETTINGS / RC CONNECTION =====
-function saveAndConnect() {
-  rcConfig = {
-    clientId: document.getElementById('rcClientId').value.trim(),
-    clientSecret: document.getElementById('rcClientSecret').value.trim(),
-    jwt: document.getElementById('rcJwt').value.trim(),
-    phone: formatPhone(document.getElementById('rcPhone').value.trim()),
-    env: document.getElementById('rcEnv').value,
-    delay: Math.max(1000, parseInt(document.getElementById('sendDelay').value) || 1000),
-    backendProxyUrl: document.getElementById('backendProxyUrl').value.trim().replace(/\/$/, ''),
-  };
-  // Persist only non-secret preferences. Never store client secret or JWT in localStorage.
-  localStorage.setItem('rc_config', JSON.stringify({
-    phone: rcConfig.phone,
-    env: rcConfig.env,
-    delay: rcConfig.delay,
-    backendProxyUrl: rcConfig.backendProxyUrl
-  }));
-  authenticate();
-}
-
-function loadConfig() {
-  const saved = localStorage.getItem('rc_config');
-  if(saved) {
-    rcConfig = JSON.parse(saved);
-    document.getElementById('rcPhone').value = rcConfig.phone||'';
-    document.getElementById('rcEnv').value = rcConfig.env||'production';
-    document.getElementById('sendDelay').value = rcConfig.delay||1000;
-    document.getElementById('backendProxyUrl').value = rcConfig.backendProxyUrl||'';
-    if(rcConfig.backendProxyUrl) authenticate();
-  }
-}
-
-async function authenticate() {
-  const result = document.getElementById('connectResult');
-  result.className = 'connect-result';
-  result.textContent = '';
-
-  if(rcConfig?.backendProxyUrl) {
-    try {
-      const res = await fetch(`${rcConfig.backendProxyUrl}/health`, { credentials: 'include' });
-      if(!res.ok) throw new Error(`Backend health check failed (${res.status})`);
-      rcToken = { token: 'backend-session', expires: Date.now() + 15 * 60 * 1000, base: rcConfig.backendProxyUrl, viaBackend: true };
-      setConnected(true);
-      result.className = 'connect-result ok';
-      result.textContent = '✓ Connected to backend SMS proxy';
-      loadPhoneNumbers();
-      return;
-    } catch(e) {
-      setConnected(false);
-      result.className = 'connect-result err';
-      result.textContent = '✕ ' + e.message;
-      return;
-    }
-  }
-
-  setConnected(false);
-  result.className = 'connect-result err';
-  result.textContent = 'Browser-only RingCentral auth is disabled for safety. Add a backend SMS proxy URL, or use ?demo=1 for demo data.';
-}
-
-function setConnected(ok) {
-  const el = document.getElementById('rcStatus');
-  const txt = document.getElementById('rcStatusText');
-  el.className = 'rc-status' + (ok?' connected':'');
-  txt.textContent = ok ? 'Connected' : 'Not connected';
-}
-
-async function loadPhoneNumbers() {
-  if(!rcToken) return;
-  try {
-    const res = rcToken.viaBackend
-      ? await fetch(`${rcToken.base}/phone-numbers`, { credentials: 'include' })
-      : await fetch(`${rcToken.base}/restapi/v1.0/account/~/extension/~/phone-number`, {
-          headers: { 'Authorization': 'Bearer ' + rcToken.token }
-        });
-    const data = await res.json();
-    const sel = document.getElementById('fromNumber');
-    sel.innerHTML = '';
-    (data.records||data.phoneNumbers||[]).forEach(r => {
-      const phoneNumber = r.phoneNumber || r.number;
-      const canSendSms = rcToken.viaBackend || (r.features && r.features.includes('SmsSender'));
-      if(phoneNumber && canSendSms) {
-        const o = document.createElement('option');
-        o.value = phoneNumber;
-        o.textContent = phoneNumber + (r.label ? ` (${r.label})` : '');
-        sel.appendChild(o);
-      }
-    });
-    if(!sel.options.length && rcConfig.phone) {
-      const o = document.createElement('option');
-      o.value = rcConfig.phone;
-      o.textContent = rcConfig.phone;
-      sel.appendChild(o);
-    }
-  } catch(e) { console.warn('Could not load numbers',e); }
-}
-
-// ===== SEND MESSAGES =====
-async function sendMessages() {
-  if(!rcToken) { toast('Connect RingCentral first (Settings tab)','error'); return; }
-  const selected = contacts.filter(c=>c.selected);
-  if(!selected.length) { toast('Select at least one recipient','error'); return; }
-  const msg = document.getElementById('messageText').value.trim();
-  if(!msg) { toast('Type a message first','error'); return; }
-  const from = document.getElementById('fromNumber').value;
-  if(!from) { toast('Select a from number','error'); return; }
-
-  const btn = document.getElementById('sendBtn');
-  btn.disabled = true;
-  const prog = document.getElementById('progressSection');
-  prog.classList.add('visible');
-  const delay = Math.max(1000, rcConfig?.delay || 1000);
-
-  let sent = 0, failed = 0;
-  for(let i=0; i<selected.length; i++) {
-    const c = selected[i];
-    const personalizedMsg = msg.replace(/{name}/gi, c.name.split(' ')[0]).replace(/{business}/gi, c.business||c.name);
-
-    const pct = Math.round((i/selected.length)*100);
-    document.getElementById('progressFill').style.width = pct + '%';
-    document.getElementById('progressPct').textContent = pct + '%';
-    document.getElementById('progressLabel').textContent = `Sending to ${c.name}...`;
-
-    try {
-      if(rcToken.expires && Date.now() > rcToken.expires) throw new Error('Session expired. Reconnect first.');
-      const res = rcToken.viaBackend
-        ? await fetch(`${rcToken.base}/sms`, {
-            method: 'POST',
-            credentials: 'include',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ from, to: c.phone, text: personalizedMsg })
           })
-        : await fetch(`${rcToken.base}/restapi/v1.0/account/~/extension/~/sms`, {
-            method: 'POST',
-            headers: {
-              'Authorization': 'Bearer ' + rcToken.token,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ from: { phoneNumber: from }, to: [{ phoneNumber: c.phone }], text: personalizedMsg })
-          });
-      if(res.status === 429) await sleep(2000);
-      const data = await res.json().catch(() => ({}));
-      if(data.id) {
-        c.lastStatus = 'sent';
-        sent++;
-        // Add to conversations
-        addToConvo(c, { text: personalizedMsg, direction: 'Outbound', ts: Date.now() });
-      } else {
-        throw new Error(data.message||'Send failed');
+          .join("");
+        document.getElementById("recipientCount").textContent =
+          contacts.length + " contact" + (contacts.length !== 1 ? "s" : "");
       }
-    } catch(e) {
-      c.lastStatus = 'failed';
-      failed++;
-    }
 
-    renderRecipients();
-    if(i < selected.length-1) await sleep(delay);
-  }
+      function filterRecipients(v) {
+        renderRecipients(v);
+      }
 
-  document.getElementById('progressFill').style.width = '100%';
-  document.getElementById('progressPct').textContent = '100%';
-  document.getElementById('progressLabel').textContent = `Done — ${sent} sent, ${failed} failed`;
-  btn.disabled = false;
-  toast(`${sent} sent${failed?' · '+failed+' failed':''}`, sent && !failed ? 'success' : 'info');
-  setTimeout(() => prog.classList.remove('visible'), 4000);
-  renderConvoList();
-}
+      function toggleRecipient(phone) {
+        const c = contacts.find((c) => c.phone === phone);
+        if (c) {
+          c.selected = !c.selected;
+          renderRecipients();
+          updateSelectedCount();
+        }
+      }
 
-function sleep(ms) { return new Promise(r=>setTimeout(r,ms)); }
+      function selectAll() {
+        const allSelected = contacts.every((c) => c.selected);
+        contacts.forEach((c) => (c.selected = !allSelected));
+        renderRecipients();
+        updateSelectedCount();
+      }
 
-// ===== CONVERSATIONS =====
-function addToConvo(contact, msg) {
-  const phone = contact.phone;
-  if(!conversations[phone]) {
-    conversations[phone] = {
-      contact,
-      messages: [],
-      unread: false
-    };
-  }
-  conversations[phone].messages.push({ ...msg, ts: msg.ts || Date.now() });
-  if(msg.direction === 'Inbound' && activeConvo !== phone) {
-    conversations[phone].unread = true;
-    unreadCount++;
-    updateBadge();
-  }
-}
+      function updateSelectedCount() {
+        const n = contacts.filter((c) => c.selected).length;
+        document.getElementById("selectedCount").textContent = n;
+        document.getElementById("sendBtnCount").textContent = n;
+        document.getElementById("sendInfo").textContent = n
+          ? `Ready to send to ${n} recipient${n !== 1 ? "s" : ""}`
+          : "Select recipients and compose a message";
+      }
 
-function renderConvoList(filter='') {
-  const list = document.getElementById('convoList');
-  const convos = Object.values(conversations).filter(c =>
-    c.contact.name.toLowerCase().includes(filter.toLowerCase()) ||
-    c.contact.phone.includes(filter)
-  ).sort((a,b) => {
-    const la = a.messages[a.messages.length-1]?.ts || 0;
-    const lb = b.messages[b.messages.length-1]?.ts || 0;
-    return lb - la;
-  });
+      function clearContacts() {
+        if (!confirm("Clear all contacts?")) return;
+        contacts = [];
+        renderRecipients();
+        updateSelectedCount();
+      }
 
-  if(!convos.length) {
-    list.innerHTML = '<div style="padding:24px 16px;text-align:center;color:var(--text3);font-size:12px;">No conversations yet.</div>';
-    return;
-  }
+      // ===== CSV IMPORT =====
+      function openImport() {
+        document.getElementById("importModal").classList.add("open");
+      }
+      function closeImport() {
+        document.getElementById("importModal").classList.remove("open");
+      }
 
-  list.innerHTML = convos.map((cv,i) => {
-    const last = cv.messages[cv.messages.length-1];
-    const avIdx = cv.contact._idx !== undefined ? cv.contact._idx : i;
-    return `
-    <div class="convo-item ${cv.unread?'unread':''} ${activeConvo===cv.contact.phone?'active':''}" onclick="openConvo('${cv.contact.phone}')">
+      function handleCSV(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => parseCSV(ev.target.result);
+        reader.readAsText(file);
+        e.target.value = "";
+      }
+
+      function parseCSV(text) {
+        if (!window.Papa) {
+          toast(
+            "CSV parser failed to load. Check your network and try again.",
+            "error",
+          );
+          return;
+        }
+
+        const parsed = Papa.parse(text, {
+          header: true,
+          skipEmptyLines: true,
+          transformHeader: (h) =>
+            String(h || "")
+              .trim()
+              .toLowerCase(),
+          transform: (v) => (typeof v === "string" ? v.trim() : v),
+        });
+
+        if (parsed.errors?.length) {
+          const first = parsed.errors[0];
+          toast(
+            `CSV parse warning on row ${first.row ?? "?"}: ${first.message}`,
+            "info",
+          );
+        }
+
+        const rows = parsed.data || [];
+        if (!rows.length) {
+          toast("CSV has no contact rows", "error");
+          return;
+        }
+
+        let added = 0,
+          skipped = 0;
+        rows.forEach((row) => {
+          const phoneKey = Object.keys(row).find(
+            (k) => k.includes("phone") || k.includes("number"),
+          );
+          const nameKey = Object.keys(row).find((k) => k.includes("name"));
+          const bizKey = Object.keys(row).find(
+            (k) =>
+              k.includes("business") ||
+              k.includes("company") ||
+              k.includes("biz"),
+          );
+          const phone = formatPhone(row[phoneKey] || "");
+          if (!isValidPhone(phone)) {
+            skipped++;
+            return;
+          }
+          const name = String(row[nameKey] || phone).slice(0, 120);
+          const business = bizKey
+            ? String(row[bizKey] || "").slice(0, 160)
+            : "";
+          if (!contacts.find((c) => c.phone === phone)) {
+            contacts.push({
+              name,
+              phone,
+              business,
+              selected: true,
+              _idx: contacts.length,
+            });
+            added++;
+          } else {
+            skipped++;
+          }
+        });
+
+        renderRecipients();
+        updateSelectedCount();
+        toast(
+          `Imported ${added} contacts${skipped ? ` · ${skipped} skipped` : ""}`,
+          added ? "success" : "info",
+        );
+      }
+
+      function addManual() {
+        const name = document.getElementById("manualName").value.trim();
+        const phone = formatPhone(
+          document.getElementById("manualPhone").value.trim(),
+        );
+        const business = document.getElementById("manualBusiness").value.trim();
+        if (!name || !isValidPhone(phone)) {
+          toast("Enter name and valid E.164-style phone", "error");
+          return;
+        }
+        if (contacts.find((c) => c.phone === phone)) {
+          toast("Phone already exists", "info");
+          return;
+        }
+        contacts.push({
+          name,
+          phone,
+          business,
+          selected: true,
+          _idx: contacts.length,
+        });
+        document.getElementById("manualName").value = "";
+        document.getElementById("manualPhone").value = "";
+        document.getElementById("manualBusiness").value = "";
+        renderRecipients();
+        updateSelectedCount();
+        toast("Contact added", "success");
+      }
+
+      // Drag & Drop
+      const dz = document.getElementById("dropzone");
+      dz.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        dz.classList.add("drag");
+      });
+      dz.addEventListener("dragleave", () => dz.classList.remove("drag"));
+      dz.addEventListener("drop", (e) => {
+        e.preventDefault();
+        dz.classList.remove("drag");
+        const file = e.dataTransfer.files[0];
+        if (file) {
+          const r = new FileReader();
+          r.onload = (ev) => parseCSV(ev.target.result);
+          r.readAsText(file);
+        }
+      });
+
+      // ===== COMPOSE =====
+      function updateCharCount() {
+        const msg = document.getElementById("messageText").value;
+        const el = document.getElementById("charCount");
+        const msgs = Math.ceil(msg.length / 160) || 1;
+        el.textContent = `${msg.length} / ${msgs * 160} (${msgs} SMS)`;
+        el.className =
+          "char-count" +
+          (msg.length > 320 ? " over" : msg.length > 140 ? " warn" : "");
+      }
+
+      function insertTemplate(t) {
+        document.getElementById("messageText").value = t;
+        updateCharCount();
+      }
+
+      // ===== SETTINGS / RC CONNECTION =====
+      function saveAndConnect() {
+        rcConfig = {
+          clientId: document.getElementById("rcClientId").value.trim(),
+          clientSecret: document.getElementById("rcClientSecret").value.trim(),
+          jwt: document.getElementById("rcJwt").value.trim(),
+          phone: formatPhone(document.getElementById("rcPhone").value.trim()),
+          env: document.getElementById("rcEnv").value,
+          delay: Math.max(
+            1000,
+            parseInt(document.getElementById("sendDelay").value) || 1000,
+          ),
+          backendProxyUrl: document
+            .getElementById("backendProxyUrl")
+            .value.trim()
+            .replace(/\/$/, ""),
+        };
+        // Persist only non-secret preferences. Never store client secret or JWT in localStorage.
+        localStorage.setItem(
+          "rc_config",
+          JSON.stringify({
+            phone: rcConfig.phone,
+            env: rcConfig.env,
+            delay: rcConfig.delay,
+            backendProxyUrl: rcConfig.backendProxyUrl,
+          }),
+        );
+        authenticate();
+      }
+
+      function loadConfig() {
+        const saved = localStorage.getItem("rc_config");
+        if (saved) {
+          rcConfig = JSON.parse(saved);
+          document.getElementById("rcPhone").value = rcConfig.phone || "";
+          document.getElementById("rcEnv").value = rcConfig.env || "production";
+          document.getElementById("sendDelay").value = rcConfig.delay || 1000;
+          document.getElementById("backendProxyUrl").value =
+            rcConfig.backendProxyUrl || "";
+          if (rcConfig.backendProxyUrl) authenticate();
+        }
+      }
+
+      async function authenticate() {
+        const result = document.getElementById("connectResult");
+        result.className = "connect-result";
+        result.textContent = "";
+
+        if (rcConfig?.backendProxyUrl) {
+          try {
+            const res = await fetch(`${rcConfig.backendProxyUrl}/`, {
+              credentials: "include",
+            });
+            if (!res.ok)
+              throw new Error(`Backend health check failed (${res.status})`);
+            rcToken = {
+              token: "backend-session",
+              expires: Date.now() + 15 * 60 * 1000,
+              base: rcConfig.backendProxyUrl,
+              viaBackend: true,
+            };
+            setConnected(true);
+            result.className = "connect-result ok";
+            result.textContent = "✓ Connected to backend SMS proxy";
+            loadPhoneNumbers();
+            return;
+          } catch (e) {
+            setConnected(false);
+            result.className = "connect-result err";
+            result.textContent = "✕ " + e.message;
+            return;
+          }
+        }
+
+        setConnected(false);
+        result.className = "connect-result err";
+        result.textContent =
+          "Browser-only RingCentral auth is disabled for safety. Add a backend SMS proxy URL, or use ?demo=1 for demo data.";
+      }
+
+      function setConnected(ok) {
+        const el = document.getElementById("rcStatus");
+        const txt = document.getElementById("rcStatusText");
+        el.className = "rc-status" + (ok ? " connected" : "");
+        txt.textContent = ok ? "Connected" : "Not connected";
+      }
+
+      async function loadPhoneNumbers() {
+        if (!rcToken) return;
+        try {
+          const res = rcToken.viaBackend
+            ? await fetch(`${rcToken.base}/phone-numbers`, {
+                credentials: "include",
+              })
+            : await fetch(
+                `${rcToken.base}/restapi/v1.0/account/~/extension/~/phone-number`,
+                {
+                  headers: { Authorization: "Bearer " + rcToken.token },
+                },
+              );
+          const data = await res.json();
+          const sel = document.getElementById("fromNumber");
+          sel.innerHTML = "";
+          (data.records || data.phoneNumbers || []).forEach((r) => {
+            const phoneNumber = r.phoneNumber || r.number;
+            const canSendSms =
+              rcToken.viaBackend ||
+              (r.features && r.features.includes("SmsSender"));
+            if (phoneNumber && canSendSms) {
+              const o = document.createElement("option");
+              o.value = phoneNumber;
+              o.textContent = phoneNumber + (r.label ? ` (${r.label})` : "");
+              sel.appendChild(o);
+            }
+          });
+          if (!sel.options.length && rcConfig.phone) {
+            const o = document.createElement("option");
+            o.value = rcConfig.phone;
+            o.textContent = rcConfig.phone;
+            sel.appendChild(o);
+          }
+        } catch (e) {
+          console.warn("Could not load numbers", e);
+        }
+      }
+
+      // ===== SEND MESSAGES =====
+      async function sendMessages() {
+        if (!rcToken) {
+          toast("Connect RingCentral first (Settings tab)", "error");
+          return;
+        }
+        const selected = contacts.filter((c) => c.selected);
+        if (!selected.length) {
+          toast("Select at least one recipient", "error");
+          return;
+        }
+        const msg = document.getElementById("messageText").value.trim();
+        if (!msg) {
+          toast("Type a message first", "error");
+          return;
+        }
+        const from = document.getElementById("fromNumber").value;
+        if (!from) {
+          toast("Select a from number", "error");
+          return;
+        }
+
+        const btn = document.getElementById("sendBtn");
+        btn.disabled = true;
+        const prog = document.getElementById("progressSection");
+        prog.classList.add("visible");
+        const delay = Math.max(1000, rcConfig?.delay || 1000);
+
+        let sent = 0,
+          failed = 0;
+        for (let i = 0; i < selected.length; i++) {
+          const c = selected[i];
+          const personalizedMsg = msg
+            .replace(/{name}/gi, c.name.split(" ")[0])
+            .replace(/{business}/gi, c.business || c.name);
+
+          const pct = Math.round((i / selected.length) * 100);
+          document.getElementById("progressFill").style.width = pct + "%";
+          document.getElementById("progressPct").textContent = pct + "%";
+          document.getElementById("progressLabel").textContent =
+            `Sending to ${c.name}...`;
+
+          try {
+            if (rcToken.expires && Date.now() > rcToken.expires)
+              throw new Error("Session expired. Reconnect first.");
+            const res = rcToken.viaBackend
+              ? await fetch(`${rcToken.base}/sms`, {
+                  method: "POST",
+                  credentials: "include",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    from,
+                    to: c.phone,
+                    text: personalizedMsg,
+                  }),
+                })
+              : await fetch(
+                  `${rcToken.base}/restapi/v1.0/account/~/extension/~/sms`,
+                  {
+                    method: "POST",
+                    headers: {
+                      Authorization: "Bearer " + rcToken.token,
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                      from: { phoneNumber: from },
+                      to: [{ phoneNumber: c.phone }],
+                      text: personalizedMsg,
+                    }),
+                  },
+                );
+            if (res.status === 429) await sleep(2000);
+            const data = await res.json().catch(() => ({}));
+            if (data.id) {
+              c.lastStatus = "sent";
+              sent++;
+              // Add to conversations
+              addToConvo(c, {
+                text: personalizedMsg,
+                direction: "Outbound",
+                ts: Date.now(),
+              });
+            } else {
+              throw new Error(data.message || "Send failed");
+            }
+          } catch (e) {
+            c.lastStatus = "failed";
+            failed++;
+          }
+
+          renderRecipients();
+          if (i < selected.length - 1) await sleep(delay);
+        }
+
+        document.getElementById("progressFill").style.width = "100%";
+        document.getElementById("progressPct").textContent = "100%";
+        document.getElementById("progressLabel").textContent =
+          `Done — ${sent} sent, ${failed} failed`;
+        btn.disabled = false;
+        toast(
+          `${sent} sent${failed ? " · " + failed + " failed" : ""}`,
+          sent && !failed ? "success" : "info",
+        );
+        setTimeout(() => prog.classList.remove("visible"), 4000);
+        renderConvoList();
+      }
+
+      function sleep(ms) {
+        return new Promise((r) => setTimeout(r, ms));
+      }
+
+      // ===== CONVERSATIONS =====
+      function addToConvo(contact, msg) {
+        const phone = contact.phone;
+        if (!conversations[phone]) {
+          conversations[phone] = {
+            contact,
+            messages: [],
+            unread: false,
+          };
+        }
+        conversations[phone].messages.push({
+          ...msg,
+          ts: msg.ts || Date.now(),
+        });
+        if (msg.direction === "Inbound" && activeConvo !== phone) {
+          conversations[phone].unread = true;
+          unreadCount++;
+          updateBadge();
+        }
+      }
+
+      function renderConvoList(filter = "") {
+        const list = document.getElementById("convoList");
+        const convos = Object.values(conversations)
+          .filter(
+            (c) =>
+              c.contact.name.toLowerCase().includes(filter.toLowerCase()) ||
+              c.contact.phone.includes(filter),
+          )
+          .sort((a, b) => {
+            const la = a.messages[a.messages.length - 1]?.ts || 0;
+            const lb = b.messages[b.messages.length - 1]?.ts || 0;
+            return lb - la;
+          });
+
+        if (!convos.length) {
+          list.innerHTML =
+            '<div style="padding:24px 16px;text-align:center;color:var(--text3);font-size:12px;">No conversations yet.</div>';
+          return;
+        }
+
+        list.innerHTML = convos
+          .map((cv, i) => {
+            const last = cv.messages[cv.messages.length - 1];
+            const avIdx = cv.contact._idx !== undefined ? cv.contact._idx : i;
+            return `
+    <div class="convo-item ${cv.unread ? "unread" : ""} ${activeConvo === cv.contact.phone ? "active" : ""}" onclick="openConvo('${cv.contact.phone}')">
       <div class="convo-avatar ${avClass(avIdx)}">
         <div class="unread-dot"></div>
         ${escapeHtml(initials(cv.contact.name))}
@@ -1334,32 +2097,35 @@ function renderConvoList(filter='') {
       <div class="convo-meta">
         <div class="convo-top">
           <span class="convo-name">${escapeHtml(cv.contact.name)}</span>
-          <span class="convo-time">${last ? timeAgo(last.ts) : ''}</span>
+          <span class="convo-time">${last ? timeAgo(last.ts) : ""}</span>
         </div>
-        <div class="convo-preview">${last ? escapeHtml((last.direction==='Outbound'?'You: ':'') + last.text) : ''}</div>
+        <div class="convo-preview">${last ? escapeHtml((last.direction === "Outbound" ? "You: " : "") + last.text) : ""}</div>
       </div>
     </div>`;
-  }).join('');
-}
+          })
+          .join("");
+      }
 
-function filterConversations(v) { renderConvoList(v); }
+      function filterConversations(v) {
+        renderConvoList(v);
+      }
 
-function openConvo(phone) {
-  activeConvo = phone;
-  const cv = conversations[phone];
-  if(!cv) return;
-  cv.unread = false;
-  renderConvoList();
+      function openConvo(phone) {
+        activeConvo = phone;
+        const cv = conversations[phone];
+        if (!cv) return;
+        cv.unread = false;
+        renderConvoList();
 
-  const pane = document.getElementById('threadPane');
-  const avIdx = cv.contact._idx !== undefined ? cv.contact._idx : 0;
+        const pane = document.getElementById("threadPane");
+        const avIdx = cv.contact._idx !== undefined ? cv.contact._idx : 0;
 
-  pane.innerHTML = `
+        pane.innerHTML = `
     <div class="thread-header">
       <div class="thread-contact">
         <div class="thread-avatar ${avClass(avIdx)}">${escapeHtml(initials(cv.contact.name))}</div>
         <div>
-          <div class="thread-name">${escapeHtml(cv.contact.name)}${cv.contact.business?' · '+escapeHtml(cv.contact.business):''}</div>
+          <div class="thread-name">${escapeHtml(cv.contact.name)}${cv.contact.business ? " · " + escapeHtml(cv.contact.business) : ""}</div>
           <div class="thread-number">${escapeHtml(cv.contact.phone)}</div>
         </div>
       </div>
@@ -1372,7 +2138,7 @@ function openConvo(phone) {
     </div>
     <div class="reply-area">
       <div class="reply-input-wrap">
-        <textarea id="replyInput" placeholder="Reply to ${attrEscape(cv.contact.name.split(' ')[0])}..." onkeydown="handleReplyKey(event,'${phone}')" rows="1" oninput="autoResize(this)"></textarea>
+        <textarea id="replyInput" placeholder="Reply to ${attrEscape(cv.contact.name.split(" ")[0])}..." onkeydown="handleReplyKey(event,'${phone}')" rows="1" oninput="autoResize(this)"></textarea>
       </div>
       <button class="send-btn" onclick="sendReply('${phone}')">
         <svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
@@ -1380,150 +2146,237 @@ function openConvo(phone) {
     </div>
   `;
 
-  const area = document.getElementById('msgArea');
-  if(area) area.scrollTop = area.scrollHeight;
-}
-
-function renderMessages(msgs) {
-  let html = '';
-  let lastDate = '';
-  msgs.forEach(m => {
-    const d = new Date(m.ts).toLocaleDateString();
-    if(d !== lastDate) {
-      html += `<div class="date-divider"><span>${d}</span></div>`;
-      lastDate = d;
-    }
-    const dir = m.direction === 'Outbound' ? 'outbound' : 'inbound';
-    html += `<div class="message-group ${dir}"><div class="bubble">${escHtml(m.text)}</div><span class="bubble-time">${formatTime(m.ts)}</span></div>`;
-  });
-  return html;
-}
-
-function escHtml(s) { return escapeHtml(s); }
-
-function handleReplyKey(e, phone) {
-  if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendReply(phone); }
-}
-
-function autoResize(el) {
-  el.style.height = 'auto';
-  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
-}
-
-async function sendReply(phone) {
-  const input = document.getElementById('replyInput');
-  const text = input?.value.trim();
-  if(!text) return;
-
-  const cv = conversations[phone];
-  if(!cv) return;
-
-  input.value = '';
-  input.style.height = 'auto';
-
-  if(!rcToken) {
-    // Demo mode
-    cv.messages.push({ text, direction: 'Outbound', ts: Date.now() });
-    openConvo(phone);
-    renderConvoList();
-    toast('Demo mode — message not actually sent','info');
-    return;
-  }
-
-  const from = document.getElementById('fromNumber').value || rcConfig?.phone;
-  try {
-    const res = rcToken.viaBackend
-      ? await fetch(`${rcToken.base}/sms`, {
-          method: 'POST',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ from, to: phone, text })
-        })
-      : await fetch(`${rcToken.base}/restapi/v1.0/account/~/extension/~/sms`, {
-          method: 'POST',
-          headers: { 'Authorization': 'Bearer '+rcToken.token, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ from:{phoneNumber:from}, to:[{phoneNumber:phone}], text })
-        });
-    const data = await res.json();
-    cv.messages.push({ text, direction: 'Outbound', ts: Date.now() });
-    openConvo(phone);
-    renderConvoList();
-  } catch(e) {
-    toast('Send failed: '+e.message,'error');
-  }
-}
-
-async function refreshInbox() {
-  if(!rcToken) { toast('Connect RingCentral first','error'); return; }
-  toast('Checking for new messages...','info');
-  try {
-    const res = rcToken.viaBackend
-      ? await fetch(`${rcToken.base}/inbox?messageType=SMS&direction=Inbound&perPage=50`, { credentials: 'include' })
-      : await fetch(`${rcToken.base}/restapi/v1.0/account/~/extension/~/message-store?messageType=SMS&direction=Inbound&perPage=50`, {
-          headers: { 'Authorization': 'Bearer '+rcToken.token }
-        });
-    const data = await res.json();
-    let newCount = 0;
-    (data.records||[]).forEach(msg => {
-      const phone = msg.from?.phoneNumber;
-      if(!phone) return;
-      const contact = contacts.find(c=>c.phone===phone) || { name: phone, phone, _idx: Object.keys(conversations).length };
-      if(!conversations[phone]) conversations[phone] = { contact, messages: [], unread: false };
-      const exists = conversations[phone].messages.find(m=>m.id===msg.id);
-      if(!exists) {
-        conversations[phone].messages.push({ id: msg.id, text: msg.subject||'(no text)', direction: 'Inbound', ts: new Date(msg.creationTime).getTime() });
-        if(!conversations[phone].unread) { conversations[phone].unread = true; newCount++; unreadCount++; }
+        const area = document.getElementById("msgArea");
+        if (area) area.scrollTop = area.scrollHeight;
       }
-    });
-    updateBadge();
-    renderConvoList();
-    if(newCount) toast(`${newCount} new message${newCount>1?'s':''}!`,'success');
-    else toast('Inbox up to date','info');
-  } catch(e) { toast('Refresh failed: '+e.message,'error'); }
-}
 
-// ===== TOAST =====
-function toast(msg, type='info') {
-  const el = document.createElement('div');
-  el.className = `toast ${type}`;
-  el.textContent = msg;
-  document.getElementById('toastContainer').appendChild(el);
-  setTimeout(() => el.remove(), 3500);
-}
+      function renderMessages(msgs) {
+        let html = "";
+        let lastDate = "";
+        msgs.forEach((m) => {
+          const d = new Date(m.ts).toLocaleDateString();
+          if (d !== lastDate) {
+            html += `<div class="date-divider"><span>${d}</span></div>`;
+            lastDate = d;
+          }
+          const dir = m.direction === "Outbound" ? "outbound" : "inbound";
+          html += `<div class="message-group ${dir}"><div class="bubble">${escHtml(m.text)}</div><span class="bubble-time">${formatTime(m.ts)}</span></div>`;
+        });
+        return html;
+      }
 
-// ===== DEMO DATA =====
-function loadDemoData() {
-  const demo = [
-    { name: 'James Anderson', phone: '+18645550101', business: 'Anderson Hardware', _idx: 0 },
-    { name: 'Sarah Mitchell', phone: '+18645550102', business: 'Mitchell Dental', _idx: 1 },
-    { name: 'Ray Nguyen', phone: '+18645550103', business: 'Nguyen Auto', _idx: 2 },
-    { name: 'Donna Pryor', phone: '+18645550104', business: '', _idx: 3 },
-    { name: 'Ethan Brooks', phone: '+18645550105', business: 'Brooks Roofing', _idx: 4 },
-  ];
-  contacts = demo;
-  renderRecipients();
-  updateSelectedCount();
+      function escHtml(s) {
+        return escapeHtml(s);
+      }
 
-  // Demo conversations
-  addToConvo(demo[0], { text: 'Hi James, thanks for being a loyal customer!', direction: 'Outbound', ts: Date.now() - 3600000 });
-  addToConvo(demo[0], { text: 'Thank you! Will you have the weekend sale again?', direction: 'Inbound', ts: Date.now() - 3000000 });
-  addToConvo(demo[1], { text: 'Hi Sarah, your appointment reminder — see you Friday!', direction: 'Outbound', ts: Date.now() - 7200000 });
-  addToConvo(demo[2], { text: 'Ray, your vehicle is ready for pickup.', direction: 'Outbound', ts: Date.now() - 1800000 });
-  addToConvo(demo[2], { text: 'Perfect! What are your hours today?', direction: 'Inbound', ts: Date.now() - 1200000 });
-  unreadCount = 2;
-  updateBadge();
-  renderConvoList();
-}
+      function handleReplyKey(e, phone) {
+        if (e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
+          sendReply(phone);
+        }
+      }
 
-// ===== INIT =====
-loadConfig();
-if (new URLSearchParams(location.search).get('demo') === '1') {
-  loadDemoData();
-} else {
-  renderRecipients();
-  updateSelectedCount();
-  renderConvoList();
-}
-</script>
-</body>
+      function autoResize(el) {
+        el.style.height = "auto";
+        el.style.height = Math.min(el.scrollHeight, 120) + "px";
+      }
+
+      async function sendReply(phone) {
+        const input = document.getElementById("replyInput");
+        const text = input?.value.trim();
+        if (!text) return;
+
+        const cv = conversations[phone];
+        if (!cv) return;
+
+        input.value = "";
+        input.style.height = "auto";
+
+        if (!rcToken) {
+          // Demo mode
+          cv.messages.push({ text, direction: "Outbound", ts: Date.now() });
+          openConvo(phone);
+          renderConvoList();
+          toast("Demo mode — message not actually sent", "info");
+          return;
+        }
+
+        const from =
+          document.getElementById("fromNumber").value || rcConfig?.phone;
+        try {
+          const res = rcToken.viaBackend
+            ? await fetch(`${rcToken.base}/sms`, {
+                method: "POST",
+                credentials: "include",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ from, to: phone, text }),
+              })
+            : await fetch(
+                `${rcToken.base}/restapi/v1.0/account/~/extension/~/sms`,
+                {
+                  method: "POST",
+                  headers: {
+                    Authorization: "Bearer " + rcToken.token,
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    from: { phoneNumber: from },
+                    to: [{ phoneNumber: phone }],
+                    text,
+                  }),
+                },
+              );
+          const data = await res.json();
+          cv.messages.push({ text, direction: "Outbound", ts: Date.now() });
+          openConvo(phone);
+          renderConvoList();
+        } catch (e) {
+          toast("Send failed: " + e.message, "error");
+        }
+      }
+
+      async function refreshInbox() {
+        if (!rcToken) {
+          toast("Connect RingCentral first", "error");
+          return;
+        }
+        toast("Checking for new messages...", "info");
+        try {
+          const res = rcToken.viaBackend
+            ? await fetch(
+                `${rcToken.base}/inbox?messageType=SMS&direction=Inbound&perPage=50`,
+                { credentials: "include" },
+              )
+            : await fetch(
+                `${rcToken.base}/restapi/v1.0/account/~/extension/~/message-store?messageType=SMS&direction=Inbound&perPage=50`,
+                {
+                  headers: { Authorization: "Bearer " + rcToken.token },
+                },
+              );
+          const data = await res.json();
+          let newCount = 0;
+          (data.records || []).forEach((msg) => {
+            const phone = msg.from?.phoneNumber;
+            if (!phone) return;
+            const contact = contacts.find((c) => c.phone === phone) || {
+              name: phone,
+              phone,
+              _idx: Object.keys(conversations).length,
+            };
+            if (!conversations[phone])
+              conversations[phone] = { contact, messages: [], unread: false };
+            const exists = conversations[phone].messages.find(
+              (m) => m.id === msg.id,
+            );
+            if (!exists) {
+              conversations[phone].messages.push({
+                id: msg.id,
+                text: msg.subject || "(no text)",
+                direction: "Inbound",
+                ts: new Date(msg.creationTime).getTime(),
+              });
+              if (!conversations[phone].unread) {
+                conversations[phone].unread = true;
+                newCount++;
+                unreadCount++;
+              }
+            }
+          });
+          updateBadge();
+          renderConvoList();
+          if (newCount)
+            toast(
+              `${newCount} new message${newCount > 1 ? "s" : ""}!`,
+              "success",
+            );
+          else toast("Inbox up to date", "info");
+        } catch (e) {
+          toast("Refresh failed: " + e.message, "error");
+        }
+      }
+
+      // ===== TOAST =====
+      function toast(msg, type = "info") {
+        const el = document.createElement("div");
+        el.className = `toast ${type}`;
+        el.textContent = msg;
+        document.getElementById("toastContainer").appendChild(el);
+        setTimeout(() => el.remove(), 3500);
+      }
+
+      // ===== DEMO DATA =====
+      function loadDemoData() {
+        const demo = [
+          {
+            name: "James Anderson",
+            phone: "+18645550101",
+            business: "Anderson Hardware",
+            _idx: 0,
+          },
+          {
+            name: "Sarah Mitchell",
+            phone: "+18645550102",
+            business: "Mitchell Dental",
+            _idx: 1,
+          },
+          {
+            name: "Ray Nguyen",
+            phone: "+18645550103",
+            business: "Nguyen Auto",
+            _idx: 2,
+          },
+          { name: "Donna Pryor", phone: "+18645550104", business: "", _idx: 3 },
+          {
+            name: "Ethan Brooks",
+            phone: "+18645550105",
+            business: "Brooks Roofing",
+            _idx: 4,
+          },
+        ];
+        contacts = demo;
+        renderRecipients();
+        updateSelectedCount();
+
+        // Demo conversations
+        addToConvo(demo[0], {
+          text: "Hi James, thanks for being a loyal customer!",
+          direction: "Outbound",
+          ts: Date.now() - 3600000,
+        });
+        addToConvo(demo[0], {
+          text: "Thank you! Will you have the weekend sale again?",
+          direction: "Inbound",
+          ts: Date.now() - 3000000,
+        });
+        addToConvo(demo[1], {
+          text: "Hi Sarah, your appointment reminder — see you Friday!",
+          direction: "Outbound",
+          ts: Date.now() - 7200000,
+        });
+        addToConvo(demo[2], {
+          text: "Ray, your vehicle is ready for pickup.",
+          direction: "Outbound",
+          ts: Date.now() - 1800000,
+        });
+        addToConvo(demo[2], {
+          text: "Perfect! What are your hours today?",
+          direction: "Inbound",
+          ts: Date.now() - 1200000,
+        });
+        unreadCount = 2;
+        updateBadge();
+        renderConvoList();
+      }
+
+      // ===== INIT =====
+      loadConfig();
+      if (new URLSearchParams(location.search).get("demo") === "1") {
+        loadDemoData();
+      } else {
+        renderRecipients();
+        updateSelectedCount();
+        renderConvoList();
+      }
+    </script>
+  </body>
 </html>
