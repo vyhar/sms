@@ -1517,7 +1517,19 @@
       }
 
       function isValidPhone(raw) {
-        return /^\+?[1-9]\d{9,14}$/.test(normalizePhone(raw));
+        return /^\+[1-9]\d{9,14}$/.test(formatPhone(raw));
+      }
+
+      function responseError(data, status, fallback = "Send failed") {
+        const detail =
+          data?.message ||
+          data?.error_description ||
+          data?.error ||
+          data?.description ||
+          (Array.isArray(data?.errors)
+            ? data.errors.map((e) => e.message || e.error || e).join(", ")
+            : "");
+        return detail || fallback + " (" + status + ")";
       }
 
       function avClass(idx) {
@@ -1533,8 +1545,14 @@
             .toUpperCase() || "?"
         );
       }
+
       function formatPhone(p) {
-        return normalizePhone(p);
+        const phone = normalizePhone(p);
+        if (!phone) return "";
+        if (phone.startsWith("+")) return phone;
+        if (phone.length === 10) return "+1" + phone;
+        if (phone.length >= 11 && phone.length <= 15) return "+" + phone;
+        return phone;
       }
       function timeAgo(ts) {
         const d = new Date(ts),
@@ -1951,9 +1969,9 @@
           toast("Type a message first", "error");
           return;
         }
-        const from = document.getElementById("fromNumber").value;
-        if (!from) {
-          toast("Select a from number", "error");
+        const from = formatPhone(document.getElementById("fromNumber").value);
+        if (!isValidPhone(from)) {
+          toast("Select a valid from number, like +15551234567", "error");
           return;
         }
 
@@ -1967,6 +1985,14 @@
           failed = 0;
         for (let i = 0; i < selected.length; i++) {
           const c = selected[i];
+          const to = formatPhone(c.phone);
+          if (!isValidPhone(to)) {
+            c.lastStatus = "failed";
+            failed++;
+            toast("Invalid phone for " + c.name + ": use + country code", "error");
+            renderRecipients();
+            continue;
+          }
           const personalizedMsg = msg
             .replace(/{name}/gi, c.name.split(" ")[0])
             .replace(/{business}/gi, c.business || c.name);
@@ -1987,7 +2013,7 @@
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({
                     from,
-                    to: c.phone,
+                    to,
                     text: personalizedMsg,
                   }),
                 })
@@ -2001,7 +2027,7 @@
                     },
                     body: JSON.stringify({
                       from: { phoneNumber: from },
-                      to: [{ phoneNumber: c.phone }],
+                      to: [{ phoneNumber: to }],
                       text: personalizedMsg,
                     }),
                   },
@@ -2009,7 +2035,7 @@
             if (res.status === 429) await sleep(2000);
             const data = await res.json().catch(() => ({}));
             if (!res.ok) {
-              throw new Error(data.message || "Send failed (" + res.status + ")");
+              throw new Error(responseError(data, res.status));
             }
             if (rcToken.viaBackend || data.id) {
               c.lastStatus = "sent";
@@ -2232,15 +2258,25 @@
           return;
         }
 
-        const from =
-          document.getElementById("fromNumber").value || rcConfig?.phone;
+        const from = formatPhone(
+          document.getElementById("fromNumber").value || rcConfig?.phone,
+        );
+        const to = formatPhone(phone);
+        if (!isValidPhone(from)) {
+          toast("Select a valid from number, like +15551234567", "error");
+          return;
+        }
+        if (!isValidPhone(to)) {
+          toast("Invalid recipient phone: use + country code", "error");
+          return;
+        }
         try {
           const res = rcToken.viaBackend
             ? await fetch(`${rcToken.base}/sms`, {
                 method: "POST",
                 credentials: "include",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ from, to: phone, text }),
+                body: JSON.stringify({ from, to, text }),
               })
             : await fetch(
                 `${rcToken.base}/restapi/v1.0/account/~/extension/~/sms`,
@@ -2252,17 +2288,17 @@
                   },
                   body: JSON.stringify({
                     from: { phoneNumber: from },
-                    to: [{ phoneNumber: phone }],
+                    to: [{ phoneNumber: to }],
                     text,
                   }),
                 },
               );
           const data = await res.json().catch(() => ({}));
           if (!res.ok) {
-            throw new Error(data.message || "Send failed (" + res.status + ")");
+            throw new Error(responseError(data, res.status));
           }
           if (!rcToken.viaBackend && !data.id) {
-            throw new Error(data.message || "Send failed");
+            throw new Error(responseError(data, res.status));
           }
           cv.messages.push({ text, direction: "Outbound", ts: Date.now() });
           openConvo(phone);
