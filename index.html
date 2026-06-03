@@ -1482,9 +1482,14 @@
       let rcConfig = null;
       let rcToken = null;
       let unreadCount = 0;
+      let inboxPollTimer = null;
+      let inboxPollDelay = 60000;
+      let inboxRefreshInFlight = false;
 
       const AVATAR_COLORS = ["av0", "av1", "av2", "av3", "av4"];
       const CONTACTS_STORAGE_KEY = "stumphouse_contacts_v1";
+      const INBOX_POLL_MIN_MS = 60000;
+      const INBOX_POLL_MAX_MS = 300000;
 
       function escapeHtml(value) {
         return String(value ?? "").replace(
@@ -1599,6 +1604,58 @@
         }
       }
 
+      function isInboxActive() {
+        return (
+          document.getElementById("inbox")?.classList.contains("active") &&
+          !document.hidden
+        );
+      }
+
+      function stopInboxAutoRefresh() {
+        if (inboxPollTimer) clearTimeout(inboxPollTimer);
+        inboxPollTimer = null;
+      }
+
+      function scheduleInboxAutoRefresh(delay = inboxPollDelay) {
+        stopInboxAutoRefresh();
+        if (!rcToken || !isInboxActive()) return;
+        inboxPollTimer = setTimeout(() => {
+          refreshInbox({ silent: true, auto: true });
+        }, delay);
+      }
+
+      function resetInboxAutoRefresh(delay = INBOX_POLL_MIN_MS) {
+        inboxPollDelay = delay;
+        scheduleInboxAutoRefresh(1000);
+      }
+
+      function latestInboundTimestamp() {
+        return Object.values(conversations).reduce((latest, cv) => {
+          const threadLatest = cv.messages.reduce(
+            (max, msg) =>
+              msg.direction === "Inbound" && msg.ts ? Math.max(max, msg.ts) : max,
+            0,
+          );
+          return Math.max(latest, threadLatest);
+        }, 0);
+      }
+
+      function inboxQueryString() {
+        const params = new URLSearchParams({
+          messageType: "SMS",
+          direction: "Inbound",
+          perPage: "50",
+        });
+        const latest = latestInboundTimestamp();
+        if (latest) {
+          params.set(
+            "dateFrom",
+            new Date(Math.max(0, latest - 60000)).toISOString(),
+          );
+        }
+        return params.toString();
+      }
+
       function timeAgo(ts) {
         const d = new Date(ts),
           now = new Date();
@@ -1626,6 +1683,9 @@
         if (id === "inbox") {
           unreadCount = 0;
           updateBadge();
+          resetInboxAutoRefresh();
+        } else {
+          stopInboxAutoRefresh();
         }
       }
 
@@ -1937,6 +1997,7 @@
             result.className = "connect-result ok";
             result.textContent = "✓ Connected to backend SMS proxy";
             loadPhoneNumbers();
+            resetInboxAutoRefresh();
             return;
           } catch (e) {
             setConnected(false);
@@ -1953,6 +2014,7 @@
       }
 
       function setConnected(ok) {
+        if (!ok) stopInboxAutoRefresh();
         const el = document.getElementById("rcStatus");
         const txt = document.getElementById("rcStatusText");
         el.className = "rc-status" + (ok ? " connected" : "");
@@ -2361,28 +2423,49 @@
         }
       }
 
-      async function refreshInbox() {
-        if (!rcToken) {
-          toast("Connect RingCentral first", "error");
+      async function refreshInbox(options = {}) {
+        const silent = !!options.silent;
+        const auto = !!options.auto;
+
+        if (inboxRefreshInFlight) {
+          if (auto) scheduleInboxAutoRefresh();
           return;
         }
-        toast("Checking for new messages...", "info");
+        if (!rcToken) {
+          if (!silent) toast("Connect RingCentral first", "error");
+          return;
+        }
+
+        if (auto && !isInboxActive()) return;
+
+        inboxRefreshInFlight = true;
+        if (!silent) toast("Checking for new messages...", "info");
+
         try {
+          const query = inboxQueryString();
           const res = rcToken.viaBackend
             ? await fetch(
-                `${rcToken.base}/inbox?messageType=SMS&direction=Inbound&perPage=50`,
+                `${rcToken.base}/inbox?${query}`,
                 { credentials: "include" },
               )
             : await fetch(
-                `${rcToken.base}/restapi/v1.0/account/~/extension/~/message-store?messageType=SMS&direction=Inbound&perPage=50`,
+                `${rcToken.base}/restapi/v1.0/account/~/extension/~/message-store?${query}`,
                 {
                   headers: { Authorization: "Bearer " + rcToken.token },
                 },
               );
-          const data = await res.json();
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            if (res.status === 429) {
+              inboxPollDelay = Math.min(inboxPollDelay * 2, INBOX_POLL_MAX_MS);
+            }
+            throw new Error(responseError(data, res.status, "Refresh failed"));
+          }
+
           let newCount = 0;
+          let activeThreadChanged = false;
           (data.records || []).forEach((msg) => {
-            const phone = msg.from?.phoneNumber;
+            const phone = formatPhone(msg.from?.phoneNumber);
             if (!phone) return;
             const contact = contacts.find((c) => c.phone === phone) || {
               name: phone,
@@ -2401,23 +2484,34 @@
                 direction: "Inbound",
                 ts: new Date(msg.creationTime).getTime(),
               });
-              if (!conversations[phone].unread) {
+              if (activeConvo === phone) {
+                activeThreadChanged = true;
+              } else if (!conversations[phone].unread) {
                 conversations[phone].unread = true;
                 newCount++;
                 unreadCount++;
               }
             }
           });
+          inboxPollDelay = INBOX_POLL_MIN_MS;
           updateBadge();
-          renderConvoList();
-          if (newCount)
+          if (activeThreadChanged && activeConvo) openConvo(activeConvo);
+          else renderConvoList();
+          if (newCount) {
             toast(
               `${newCount} new message${newCount > 1 ? "s" : ""}!`,
               "success",
             );
-          else toast("Inbox up to date", "info");
+          } else if (!silent) {
+            toast("Inbox up to date", "info");
+          }
         } catch (e) {
-          toast("Refresh failed: " + e.message, "error");
+          inboxPollDelay = Math.min(inboxPollDelay * 2, INBOX_POLL_MAX_MS);
+          if (!silent) toast("Refresh failed: " + e.message, "error");
+          else console.error("Auto-refresh failed", e);
+        } finally {
+          inboxRefreshInFlight = false;
+          scheduleInboxAutoRefresh();
         }
       }
 
@@ -2493,6 +2587,11 @@
         updateBadge();
         renderConvoList();
       }
+
+      document.addEventListener("visibilitychange", () => {
+        if (document.hidden) stopInboxAutoRefresh();
+        else if (rcToken && isInboxActive()) resetInboxAutoRefresh();
+      });
 
       // ===== INIT =====
       loadConfig();
