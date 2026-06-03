@@ -1922,7 +1922,13 @@
             sel.appendChild(o);
           }
         } catch (e) {
-          console.warn("Could not load numbers", e);
+  console.error("Could not load numbers", e);
+
+  toast(
+    `Failed to load numbers: ${e.message}`,
+    "error"
+  );
+}
         }
       }
 
@@ -2011,9 +2017,21 @@
             } else {
               throw new Error(data.message || "Send failed");
             }
-          } catch (e) {
-            c.lastStatus = "failed";
-            failed++;
+          } catch(e) {
+  c.lastStatus = 'failed';
+  failed++;
+
+  toast(
+    `Failed sending to ${c.name}: ${e.message}`,
+    'error'
+  );
+
+  console.error(
+    'SMS send failed',
+    c.phone,
+    e
+  );
+}
           }
 
           renderRecipients();
