@@ -1311,7 +1311,8 @@
             <input
               type="text"
               id="rcClientId"
-              placeholder="Do not use in production browser builds"
+              placeholder="Backend proxy only"
+              disabled
               autocomplete="off"
             />
           </div>
@@ -1321,6 +1322,7 @@
               type="password"
               id="rcClientSecret"
               placeholder="Use a backend secret store instead"
+              disabled
               autocomplete="off"
             />
           </div>
@@ -1329,7 +1331,8 @@
             <input
               type="password"
               id="rcJwt"
-              placeholder="Use only for local sandbox testing"
+              placeholder="Use a backend secret store instead"
+              disabled
               autocomplete="off"
             />
             <div class="settings-hint">
@@ -1500,6 +1503,10 @@
         return escapeHtml(value).replace(/`/g, "&#96;");
       }
 
+      function jsArg(value) {
+        return escapeHtml(JSON.stringify(String(value ?? "")));
+      }
+
       function normalizePhone(raw) {
         const cleaned = String(raw ?? "")
           .trim()
@@ -1581,7 +1588,7 @@
         }
         list.innerHTML = filtered
           .map((c, i) => {
-            const safePhone = attrEscape(c.phone);
+            const safePhoneArg = jsArg(c.phone);
             const safeName = escapeHtml(c.name);
             const safeBusiness = c.business
               ? " — " + escapeHtml(c.business)
@@ -1592,7 +1599,7 @@
                 ? `<span class="recipient-status ${c.lastStatus}">${c.lastStatus}</span>`
                 : "";
             return `
-    <div class="recipient-item ${c.selected ? "selected" : ""}" onclick="toggleRecipient('${safePhone}')">
+    <div class="recipient-item ${c.selected ? "selected" : ""}" onclick="toggleRecipient(${safePhoneArg})">
       <div class="recipient-check ${c.selected ? "checked" : ""}"></div>
       <div class="recipient-avatar ${avClass(c._idx)}">${escapeHtml(initials(c.name))}</div>
       <div class="recipient-info">
@@ -1803,9 +1810,6 @@
       // ===== SETTINGS / RC CONNECTION =====
       function saveAndConnect() {
         rcConfig = {
-          clientId: document.getElementById("rcClientId").value.trim(),
-          clientSecret: document.getElementById("rcClientSecret").value.trim(),
-          jwt: document.getElementById("rcJwt").value.trim(),
           phone: formatPhone(document.getElementById("rcPhone").value.trim()),
           env: document.getElementById("rcEnv").value,
           delay: Math.max(
@@ -1929,7 +1933,7 @@
     "error"
   );
 }
-      
+  }    
 
       // ===== SEND MESSAGES =====
       async function sendMessages() {
@@ -2004,7 +2008,10 @@
                 );
             if (res.status === 429) await sleep(2000);
             const data = await res.json().catch(() => ({}));
-            if (data.id) {
+            if (!res.ok) {
+              throw new Error(data.message || "Send failed (" + res.status + ")");
+            }
+            if (rcToken.viaBackend || data.id) {
               c.lastStatus = "sent";
               sent++;
               // Add to conversations
@@ -2031,7 +2038,6 @@
     e
   );
 }
-          }
 
           renderRecipients();
           if (i < selected.length - 1) await sleep(delay);
@@ -2100,7 +2106,7 @@
             const last = cv.messages[cv.messages.length - 1];
             const avIdx = cv.contact._idx !== undefined ? cv.contact._idx : i;
             return `
-    <div class="convo-item ${cv.unread ? "unread" : ""} ${activeConvo === cv.contact.phone ? "active" : ""}" onclick="openConvo('${cv.contact.phone}')">
+    <div class="convo-item ${cv.unread ? "unread" : ""} ${activeConvo === cv.contact.phone ? "active" : ""}" onclick="openConvo(${jsArg(cv.contact.phone)})">
       <div class="convo-avatar ${avClass(avIdx)}">
         <div class="unread-dot"></div>
         ${escapeHtml(initials(cv.contact.name))}
@@ -2126,6 +2132,8 @@
         const cv = conversations[phone];
         if (!cv) return;
         cv.unread = false;
+        unreadCount = Object.values(conversations).filter((c) => c.unread).length;
+        updateBadge();
         renderConvoList();
 
         const pane = document.getElementById("threadPane");
@@ -2141,7 +2149,7 @@
         </div>
       </div>
       <div class="thread-actions">
-        <button class="btn sm" onclick="sendQuickReply('${phone}')">Quick Reply</button>
+        <button class="btn sm" onclick="sendQuickReply(${jsArg(phone)})">Quick Reply</button>
       </div>
     </div>
     <div class="messages-area" id="msgArea">
@@ -2149,9 +2157,9 @@
     </div>
     <div class="reply-area">
       <div class="reply-input-wrap">
-        <textarea id="replyInput" placeholder="Reply to ${attrEscape(cv.contact.name.split(" ")[0])}..." onkeydown="handleReplyKey(event,'${phone}')" rows="1" oninput="autoResize(this)"></textarea>
+        <textarea id="replyInput" placeholder="Reply to ${attrEscape(cv.contact.name.split(" ")[0])}..." onkeydown="handleReplyKey(event,${jsArg(phone)})" rows="1" oninput="autoResize(this)"></textarea>
       </div>
-      <button class="send-btn" onclick="sendReply('${phone}')">
+      <button class="send-btn" onclick="sendReply(${jsArg(phone)})">
         <svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
       </button>
     </div>
@@ -2190,6 +2198,18 @@
       function autoResize(el) {
         el.style.height = "auto";
         el.style.height = Math.min(el.scrollHeight, 120) + "px";
+      }
+
+      function sendQuickReply(phone) {
+        const cv = conversations[phone];
+        if (!cv) return;
+        if (activeConvo !== phone) openConvo(phone);
+        const input = document.getElementById("replyInput");
+        if (!input) return;
+        const firstName = cv.contact.name.split(" ")[0] || "there";
+        input.value = "Hi " + firstName + ", ";
+        input.focus();
+        autoResize(input);
       }
 
       async function sendReply(phone) {
@@ -2237,7 +2257,13 @@
                   }),
                 },
               );
-          const data = await res.json();
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            throw new Error(data.message || "Send failed (" + res.status + ")");
+          }
+          if (!rcToken.viaBackend && !data.id) {
+            throw new Error(data.message || "Send failed");
+          }
           cv.messages.push({ text, direction: "Outbound", ts: Date.now() });
           openConvo(phone);
           renderConvoList();
