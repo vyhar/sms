@@ -1484,6 +1484,7 @@
       let unreadCount = 0;
 
       const AVATAR_COLORS = ["av0", "av1", "av2", "av3", "av4"];
+      const CONTACTS_STORAGE_KEY = "stumphouse_contacts_v1";
 
       function escapeHtml(value) {
         return String(value ?? "").replace(
@@ -1554,6 +1555,50 @@
         if (phone.length >= 11 && phone.length <= 15) return "+" + phone;
         return phone;
       }
+
+      function saveContacts() {
+        try {
+          localStorage.setItem(
+            CONTACTS_STORAGE_KEY,
+            JSON.stringify(
+              contacts.map((c) => ({
+                name: c.name,
+                phone: c.phone,
+                business: c.business || "",
+                selected: !!c.selected,
+                lastStatus: c.lastStatus || "",
+              })),
+            ),
+          );
+        } catch (e) {
+          console.error("Could not save contacts", e);
+        }
+      }
+
+      function loadContacts() {
+        try {
+          const saved = localStorage.getItem(CONTACTS_STORAGE_KEY);
+          if (!saved) return false;
+          const parsed = JSON.parse(saved);
+          if (!Array.isArray(parsed)) return false;
+          contacts = parsed
+            .map((c, idx) => ({
+              name: String(c.name || "").slice(0, 120),
+              phone: formatPhone(c.phone || ""),
+              business: String(c.business || "").slice(0, 160),
+              selected: !!c.selected,
+              lastStatus: c.lastStatus || "",
+              _idx: idx,
+            }))
+            .filter((c) => c.name && isValidPhone(c.phone));
+          return contacts.length > 0;
+        } catch (e) {
+          console.error("Could not load contacts", e);
+          contacts = [];
+          return false;
+        }
+      }
+
       function timeAgo(ts) {
         const d = new Date(ts),
           now = new Date();
@@ -1640,6 +1685,7 @@
         const c = contacts.find((c) => c.phone === phone);
         if (c) {
           c.selected = !c.selected;
+          saveContacts();
           renderRecipients();
           updateSelectedCount();
         }
@@ -1648,6 +1694,7 @@
       function selectAll() {
         const allSelected = contacts.every((c) => c.selected);
         contacts.forEach((c) => (c.selected = !allSelected));
+        saveContacts();
         renderRecipients();
         updateSelectedCount();
       }
@@ -1664,6 +1711,7 @@
       function clearContacts() {
         if (!confirm("Clear all contacts?")) return;
         contacts = [];
+        saveContacts();
         renderRecipients();
         updateSelectedCount();
       }
@@ -1754,6 +1802,7 @@
           }
         });
 
+        saveContacts();
         renderRecipients();
         updateSelectedCount();
         toast(
@@ -1783,6 +1832,7 @@
           selected: true,
           _idx: contacts.length,
         });
+        saveContacts();
         document.getElementById("manualName").value = "";
         document.getElementById("manualPhone").value = "";
         document.getElementById("manualBusiness").value = "";
@@ -1990,6 +2040,7 @@
             c.lastStatus = "failed";
             failed++;
             toast("Invalid phone for " + c.name + ": use + country code", "error");
+            saveContacts();
             renderRecipients();
             continue;
           }
@@ -2040,6 +2091,7 @@
             if (rcToken.viaBackend || data.id) {
               c.lastStatus = "sent";
               sent++;
+              saveContacts();
               // Add to conversations
               addToConvo(c, {
                 text: personalizedMsg,
@@ -2049,9 +2101,10 @@
             } else {
               throw new Error(data.message || "Send failed");
             }
-          } catch(e) {
+} catch(e) {
   c.lastStatus = 'failed';
   failed++;
+  saveContacts();
 
   toast(
     `Failed sending to ${c.name}: ${e.message}`,
@@ -2446,6 +2499,7 @@
       if (new URLSearchParams(location.search).get("demo") === "1") {
         loadDemoData();
       } else {
+        loadContacts();
         renderRecipients();
         updateSelectedCount();
         renderConvoList();
