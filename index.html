@@ -42,6 +42,19 @@
         --display: "Syne", sans-serif;
       }
 
+
+      body.light-theme {
+        --bg: #f5f7fb;
+        --bg2: #ffffff;
+        --bg3: #eef2f7;
+        --bg4: #e4eaf3;
+        --border: #d7deea;
+        --border2: #bcc7d8;
+        --text: #1d2433;
+        --text2: #4f5b70;
+        --text3: #7a8598;
+      }
+
       body {
         font-family: var(--sans);
         background: var(--bg);
@@ -1378,7 +1391,18 @@
           <div class="connect-result" id="connectResult"></div>
         </div>
         <div class="settings-section">
-          <div class="settings-section-title">Sending Preferences</div>
+          
+        <div class="settings-section">
+          <div class="settings-section-title">Appearance</div>
+          <div class="settings-field">
+            <label>THEME</label>
+            <select id="themeSelect" onchange="setTheme(this.value)">
+              <option value="dark">Dark</option>
+              <option value="light">Light</option>
+            </select>
+          </div>
+        </div>
+<div class="settings-section-title">Sending Preferences</div>
           <div class="settings-field">
             <label>DELAY BETWEEN MESSAGES (ms)</label>
             <input
@@ -2524,85 +2548,20 @@
         setTimeout(() => el.remove(), 3500);
       }
 
-      // ===== DEMO DATA =====
-      function loadDemoData() {
-        const demo = [
-          {
-            name: "James Anderson",
-            phone: "+18645550101",
-            business: "Anderson Hardware",
-            _idx: 0,
-          },
-          {
-            name: "Sarah Mitchell",
-            phone: "+18645550102",
-            business: "Mitchell Dental",
-            _idx: 1,
-          },
-          {
-            name: "Ray Nguyen",
-            phone: "+18645550103",
-            business: "Nguyen Auto",
-            _idx: 2,
-          },
-          { name: "Donna Pryor", phone: "+18645550104", business: "", _idx: 3 },
-          {
-            name: "Ethan Brooks",
-            phone: "+18645550105",
-            business: "Brooks Roofing",
-            _idx: 4,
-          },
-        ];
-        contacts = demo;
-        renderRecipients();
-        updateSelectedCount();
-
-        // Demo conversations
-        addToConvo(demo[0], {
-          text: "Hi James, thanks for being a loyal customer!",
-          direction: "Outbound",
-          ts: Date.now() - 3600000,
-        });
-        addToConvo(demo[0], {
-          text: "Thank you! Will you have the weekend sale again?",
-          direction: "Inbound",
-          ts: Date.now() - 3000000,
-        });
-        addToConvo(demo[1], {
-          text: "Hi Sarah, your appointment reminder — see you Friday!",
-          direction: "Outbound",
-          ts: Date.now() - 7200000,
-        });
-        addToConvo(demo[2], {
-          text: "Ray, your vehicle is ready for pickup.",
-          direction: "Outbound",
-          ts: Date.now() - 1800000,
-        });
-        addToConvo(demo[2], {
-          text: "Perfect! What are your hours today?",
-          direction: "Inbound",
-          ts: Date.now() - 1200000,
-        });
-        unreadCount = 2;
-        updateBadge();
-        renderConvoList();
+      function setTheme(theme) {
+        document.body.classList.toggle('light-theme', theme === 'light');
+        localStorage.setItem('stumphouse_theme', theme);
+        const sel = document.getElementById('themeSelect');
+        if (sel) sel.value = theme;
       }
 
-      document.addEventListener("visibilitychange", () => {
-        if (document.hidden) stopInboxAutoRefresh();
-        else if (rcToken && isInboxActive()) resetInboxAutoRefresh();
-      });
-
-      // ===== INIT =====
-      loadConfig();
-      if (new URLSearchParams(location.search).get("demo") === "1") {
-        loadDemoData();
-      } else {
-        loadContacts();
-        renderRecipients();
-        updateSelectedCount();
-        renderConvoList();
+      function loadTheme() {
+        const theme = localStorage.getItem('stumphouse_theme') || 'dark';
+        setTheme(theme);
       }
+
+      loadTheme();
+
     </script>
   </body>
 </html>
