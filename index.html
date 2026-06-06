@@ -42,17 +42,16 @@
         --display: "Syne", sans-serif;
       }
 
-
-      body.light-theme {
+      [data-theme="light"] {
         --bg: #f5f7fb;
         --bg2: #ffffff;
         --bg3: #eef2f7;
-        --bg4: #e4eaf3;
-        --border: #d7deea;
-        --border2: #bcc7d8;
-        --text: #1d2433;
-        --text2: #4f5b70;
-        --text3: #7a8598;
+        --bg4: #e5ebf4;
+        --border: #d7dde8;
+        --border2: #c2cbda;
+        --text: #1e2430;
+        --text2: #4b5568;
+        --text3: #7b8598;
       }
 
       body {
@@ -133,6 +132,45 @@
       }
       .rc-status.connected {
         color: var(--green);
+      }
+
+      .header-statuses {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+      }
+
+      .sync-status {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-family: var(--mono);
+        font-size: 11px;
+        color: var(--text2);
+      }
+
+      .sync-status .dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--text3);
+      }
+
+      .sync-status.synced .dot {
+        background: var(--green);
+      }
+
+      .sync-status.syncing .dot {
+        background: var(--amber);
+        animation: pulse 1.2s infinite;
+      }
+
+      .sync-status.error .dot {
+        background: var(--red);
+      }
+
+      .sync-status.disabled {
+        color: var(--text3);
       }
 
       /* TABS */
@@ -969,6 +1007,31 @@
         display: block;
       }
 
+      .settings-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 12px;
+      }
+
+      .sync-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 12px;
+      }
+
+      .sync-actions .btn {
+        min-width: 104px;
+        justify-content: center;
+      }
+
+      .sync-note {
+        margin-top: 10px;
+        color: var(--text3);
+        font-size: 12px;
+        line-height: 1.5;
+      }
+
       /* TOAST */
       .toast-container {
         position: fixed;
@@ -1134,9 +1197,15 @@
         <div class="logo-dot"></div>
         Stumphouse SMS Platform
       </div>
-      <div class="rc-status" id="rcStatus">
-        <div class="dot"></div>
-        <span id="rcStatusText">Not connected</span>
+      <div class="header-statuses">
+        <div class="sync-status disabled" id="syncStatus">
+          <div class="dot"></div>
+          <span id="syncStatusText">Local only</span>
+        </div>
+        <div class="rc-status" id="rcStatus">
+          <div class="dot"></div>
+          <span id="rcStatusText">Not connected</span>
+        </div>
       </div>
     </header>
 
@@ -1391,18 +1460,89 @@
           <div class="connect-result" id="connectResult"></div>
         </div>
         <div class="settings-section">
-          
-        <div class="settings-section">
-          <div class="settings-section-title">Appearance</div>
+          <div class="settings-section-title">Shared Data Sync</div>
           <div class="settings-field">
-            <label>THEME</label>
-            <select id="themeSelect" onchange="setTheme(this.value)">
-              <option value="dark">Dark</option>
-              <option value="light">Light</option>
-            </select>
+            <label>SYNC API URL</label>
+            <input
+              type="url"
+              id="syncEndpoint"
+              placeholder="https://your-api.example.com/sync"
+              autocomplete="off"
+            />
+            <div class="settings-hint">
+              Use a shared backend endpoint that supports GET and PUT. Leave
+              blank to use the Backend SMS Proxy URL plus /sync.
+            </div>
           </div>
+          <div class="settings-grid">
+            <div class="settings-field">
+              <label>WORKSPACE ID</label>
+              <input
+                type="text"
+                id="syncWorkspace"
+                placeholder="stumphouse-main"
+                autocomplete="off"
+              />
+            </div>
+            <div class="settings-field">
+              <label>SYNC MODE</label>
+              <select id="syncMode">
+                <option value="auto">Auto sync</option>
+                <option value="manual">Manual only</option>
+                <option value="off">Local only</option>
+              </select>
+            </div>
+          </div>
+          <div class="settings-field">
+            <label>DEVICE NAME</label>
+            <input
+              type="text"
+              id="syncDeviceName"
+              placeholder="Front desk laptop"
+              autocomplete="off"
+            />
+          </div>
+          <div class="sync-actions">
+            <button class="btn primary" onclick="saveSyncSettings()">
+              Save Sync
+            </button>
+            <button class="btn" onclick="syncNow()">Sync Now</button>
+            <button class="btn" onclick="pullLatest()">Pull Latest</button>
+            <button class="btn" onclick="exportData()">Export Backup</button>
+            <button
+              class="btn"
+              onclick="document.getElementById('stateImportFile').click()"
+            >
+              Import Backup
+            </button>
+            <input
+              type="file"
+              id="stateImportFile"
+              accept="application/json"
+              style="display: none"
+              onchange="importData(event)"
+            />
+          </div>
+          <div class="sync-note">
+            Synced data includes contacts, conversations, unread flags, send
+            status, and non-secret preferences. RingCentral secrets still belong
+            on your backend.
+          </div>
+          <div class="connect-result" id="syncResult"></div>
         </div>
-<div class="settings-section-title">Sending Preferences</div>
+        <div class="settings-section">
+          <div class="settings-section">
+            <div class="settings-section-title">Appearance</div>
+            <div class="settings-field">
+              <label>THEME</label>
+              <select id="themeSelect" onchange="setTheme(this.value)">
+                <option value="dark">Dark</option>
+                <option value="light">Light</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="settings-section-title">Sending Preferences</div>
           <div class="settings-field">
             <label>DELAY BETWEEN MESSAGES (ms)</label>
             <input
@@ -1499,6 +1639,26 @@
     <div class="toast-container" id="toastContainer"></div>
 
     <script>
+      const THEME_STORAGE_KEY = "stumphouse_theme_v1";
+
+      function setTheme(theme) {
+        const value = theme === "light" ? "light" : "dark";
+        document.documentElement.setAttribute("data-theme", value);
+        try {
+          localStorage.setItem(THEME_STORAGE_KEY, value);
+        } catch (e) {}
+        const el = document.getElementById("themeSelect");
+        if (el) el.value = value;
+      }
+
+      function loadTheme() {
+        let theme = "dark";
+        try {
+          theme = localStorage.getItem(THEME_STORAGE_KEY) || "dark";
+        } catch (e) {}
+        setTheme(theme);
+      }
+
       // ===== STATE =====
       let contacts = [];
       let conversations = {};
@@ -1509,11 +1669,24 @@
       let inboxPollTimer = null;
       let inboxPollDelay = 60000;
       let inboxRefreshInFlight = false;
+      let syncSettings = null;
+      let syncTimer = null;
+      let syncInFlight = false;
+      let syncDirty = false;
+      let stateMeta = { updatedAt: 0, lastSyncedAt: 0 };
 
       const AVATAR_COLORS = ["av0", "av1", "av2", "av3", "av4"];
       const CONTACTS_STORAGE_KEY = "stumphouse_contacts_v1";
+      const APP_STATE_STORAGE_KEY = "stumphouse_app_state_v2";
+      const RC_CONFIG_STORAGE_KEY = "rc_config";
+      const SYNC_SETTINGS_STORAGE_KEY = "stumphouse_sync_settings_v1";
+      const DEVICE_ID_STORAGE_KEY = "stumphouse_device_id";
+      const APP_STATE_VERSION = 2;
+      const DEFAULT_SYNC_WORKSPACE = "stumphouse-main";
+      const SYNC_INTERVAL_MS = 45000;
       const INBOX_POLL_MIN_MS = 60000;
       const INBOX_POLL_MAX_MS = 300000;
+      const DEVICE_ID = getDeviceId();
 
       function escapeHtml(value) {
         return String(value ?? "").replace(
@@ -1585,47 +1758,643 @@
         return phone;
       }
 
-      function saveContacts() {
+      function getDeviceId() {
         try {
-          localStorage.setItem(
-            CONTACTS_STORAGE_KEY,
-            JSON.stringify(
-              contacts.map((c) => ({
-                name: c.name,
-                phone: c.phone,
-                business: c.business || "",
-                selected: !!c.selected,
-                lastStatus: c.lastStatus || "",
-              })),
-            ),
-          );
+          const existing = localStorage.getItem(DEVICE_ID_STORAGE_KEY);
+          if (existing) return existing;
+          const id =
+            "device-" +
+            Math.random().toString(36).slice(2) +
+            Date.now().toString(36);
+          localStorage.setItem(DEVICE_ID_STORAGE_KEY, id);
+          return id;
         } catch (e) {
-          console.error("Could not save contacts", e);
+          return "device-" + Date.now().toString(36);
         }
       }
 
-      function loadContacts() {
-        try {
-          const saved = localStorage.getItem(CONTACTS_STORAGE_KEY);
-          if (!saved) return false;
-          const parsed = JSON.parse(saved);
-          if (!Array.isArray(parsed)) return false;
-          contacts = parsed
-            .map((c, idx) => ({
-              name: String(c.name || "").slice(0, 120),
-              phone: formatPhone(c.phone || ""),
-              business: String(c.business || "").slice(0, 160),
-              selected: !!c.selected,
-              lastStatus: c.lastStatus || "",
-              _idx: idx,
-            }))
-            .filter((c) => c.name && isValidPhone(c.phone));
-          return contacts.length > 0;
-        } catch (e) {
-          console.error("Could not load contacts", e);
-          contacts = [];
-          return false;
+      function cleanWorkspace(value) {
+        const cleaned = String(value || "")
+          .trim()
+          .toLowerCase()
+          .replace(/[^a-z0-9_-]+/g, "-")
+          .replace(/^-+|-+$/g, "");
+        return cleaned || DEFAULT_SYNC_WORKSPACE;
+      }
+
+      function sanitizeContact(raw, idx = 0) {
+        const phone = formatPhone(raw?.phone || "");
+        return {
+          name: String(raw?.name || phone || "Unknown").slice(0, 120),
+          phone,
+          business: String(raw?.business || "").slice(0, 160),
+          selected: !!raw?.selected,
+          lastStatus: ["sent", "pending", "failed"].includes(raw?.lastStatus)
+            ? raw.lastStatus
+            : "",
+          _idx: idx,
+        };
+      }
+
+      function sanitizeContacts(rawContacts = []) {
+        const byPhone = new Map();
+        (Array.isArray(rawContacts) ? rawContacts : []).forEach((raw, idx) => {
+          const contact = sanitizeContact(raw, idx);
+          if (!contact.phone || !isValidPhone(contact.phone)) return;
+          const existing = byPhone.get(contact.phone);
+          byPhone.set(contact.phone, {
+            ...(existing || {}),
+            ...contact,
+            selected: contact.selected || !!existing?.selected,
+            lastStatus: contact.lastStatus || existing?.lastStatus || "",
+          });
+        });
+        return Array.from(byPhone.values()).map((c, idx) => ({
+          ...c,
+          _idx: idx,
+        }));
+      }
+
+      function sanitizeMessage(raw) {
+        const ts =
+          Number(raw?.ts || Date.parse(raw?.creationTime || "")) || Date.now();
+        return {
+          id: raw?.id ? String(raw.id).slice(0, 120) : "",
+          text: String(raw?.text || raw?.subject || "").slice(0, 2000),
+          direction: raw?.direction === "Inbound" ? "Inbound" : "Outbound",
+          ts,
+        };
+      }
+
+      function sanitizeConversations(
+        rawConversations = {},
+        contactPool = contacts,
+      ) {
+        const next = {};
+        Object.entries(rawConversations || {}).forEach(([key, raw]) => {
+          const phone = formatPhone(raw?.contact?.phone || key);
+          if (!phone) return;
+          const contact =
+            contactPool.find((c) => c.phone === phone) ||
+            sanitizeContact(raw?.contact || { phone, name: phone });
+          const messages = (Array.isArray(raw?.messages) ? raw.messages : [])
+            .map(sanitizeMessage)
+            .filter((m) => m.text)
+            .sort((a, b) => a.ts - b.ts);
+          next[phone] = {
+            contact,
+            messages: dedupeMessages(messages),
+            unread: !!raw?.unread,
+          };
+        });
+        return next;
+      }
+
+      function dedupeMessages(messages) {
+        const seen = new Set();
+        return messages.filter((msg) => {
+          const key =
+            msg.id || [msg.direction, msg.ts, msg.text.slice(0, 80)].join("|");
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+      }
+
+      function serializeContacts() {
+        return contacts.map((c) => ({
+          name: c.name,
+          phone: c.phone,
+          business: c.business || "",
+          selected: !!c.selected,
+          lastStatus: c.lastStatus || "",
+        }));
+      }
+
+      function serializeConversations() {
+        return Object.fromEntries(
+          Object.entries(conversations).map(([phone, cv]) => [
+            phone,
+            {
+              contact: {
+                name: cv.contact?.name || phone,
+                phone: cv.contact?.phone || phone,
+                business: cv.contact?.business || "",
+              },
+              messages: (cv.messages || []).map((m) => ({
+                id: m.id || "",
+                text: m.text || "",
+                direction: m.direction === "Inbound" ? "Inbound" : "Outbound",
+                ts: m.ts || Date.now(),
+              })),
+              unread: !!cv.unread,
+            },
+          ]),
+        );
+      }
+
+      function safeConfig(config = rcConfig) {
+        return {
+          phone: formatPhone(config?.phone || ""),
+          env: config?.env === "sandbox" ? "sandbox" : "production",
+          delay: Math.max(1000, parseInt(config?.delay, 10) || 1000),
+          backendProxyUrl: String(config?.backendProxyUrl || "")
+            .trim()
+            .replace(/\/$/, ""),
+        };
+      }
+
+      function makeStateSnapshot() {
+        return {
+          version: APP_STATE_VERSION,
+          updatedAt: stateMeta.updatedAt || Date.now(),
+          deviceId: DEVICE_ID,
+          deviceName: syncSettings?.deviceName || "",
+          contacts: serializeContacts(),
+          conversations: serializeConversations(),
+          rcConfig: safeConfig(),
+        };
+      }
+
+      function saveContacts() {
+        persistAppState({ sync: true });
+      }
+
+      function persistAppState(options = {}) {
+        const dirty = options.dirty !== false;
+        if (dirty) {
+          stateMeta.updatedAt = Date.now();
+          syncDirty = true;
         }
+        try {
+          const snapshot = makeStateSnapshot();
+          localStorage.setItem(APP_STATE_STORAGE_KEY, JSON.stringify(snapshot));
+          localStorage.setItem(
+            CONTACTS_STORAGE_KEY,
+            JSON.stringify(snapshot.contacts),
+          );
+          localStorage.setItem(
+            RC_CONFIG_STORAGE_KEY,
+            JSON.stringify(snapshot.rcConfig),
+          );
+        } catch (e) {
+          console.error("Could not save app state", e);
+          toast("Could not save this browser's local copy", "error");
+        }
+        updateSyncStatus();
+        if (options.sync) scheduleDataSync();
+      }
+
+      function loadContacts() {
+        loadAppState();
+        return contacts.length > 0;
+      }
+
+      function loadAppState() {
+        let loaded = false;
+        try {
+          const saved = localStorage.getItem(APP_STATE_STORAGE_KEY);
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            contacts = sanitizeContacts(parsed.contacts || []);
+            conversations = sanitizeConversations(parsed.conversations || {});
+            rcConfig = safeConfig(parsed.rcConfig || {});
+            stateMeta.updatedAt = Number(parsed.updatedAt) || 0;
+            loaded = true;
+          }
+        } catch (e) {
+          console.error("Could not load app state", e);
+        }
+
+        if (!loaded) {
+          migrateLegacyState();
+        }
+
+        contacts = sanitizeContacts(contacts);
+        conversations = sanitizeConversations(conversations);
+        unreadCount = Object.values(conversations).filter(
+          (c) => c.unread,
+        ).length;
+      }
+
+      function migrateLegacyState() {
+        try {
+          const savedContacts = localStorage.getItem(CONTACTS_STORAGE_KEY);
+          if (savedContacts)
+            contacts = sanitizeContacts(JSON.parse(savedContacts));
+        } catch (e) {
+          console.error("Could not migrate contacts", e);
+          contacts = [];
+        }
+
+        try {
+          const savedConfig = localStorage.getItem(RC_CONFIG_STORAGE_KEY);
+          if (savedConfig) rcConfig = safeConfig(JSON.parse(savedConfig));
+        } catch (e) {
+          console.error("Could not migrate config", e);
+          rcConfig = null;
+        }
+
+        stateMeta.updatedAt = Date.now();
+        persistAppState({ dirty: false });
+      }
+
+      function defaultSyncSettings() {
+        return {
+          endpoint: "",
+          workspace: DEFAULT_SYNC_WORKSPACE,
+          mode: "auto",
+          deviceName: "",
+        };
+      }
+
+      function loadSyncSettings() {
+        syncSettings = defaultSyncSettings();
+        try {
+          const saved = localStorage.getItem(SYNC_SETTINGS_STORAGE_KEY);
+          if (saved) {
+            syncSettings = {
+              ...syncSettings,
+              ...JSON.parse(saved),
+            };
+          }
+        } catch (e) {
+          console.error("Could not load sync settings", e);
+        }
+        syncSettings.workspace = cleanWorkspace(syncSettings.workspace);
+        syncSettings.mode = ["auto", "manual", "off"].includes(
+          syncSettings.mode,
+        )
+          ? syncSettings.mode
+          : "auto";
+        applySyncSettingsToForm();
+        updateSyncStatus();
+      }
+
+      function applySyncSettingsToForm() {
+        const endpoint = document.getElementById("syncEndpoint");
+        const workspace = document.getElementById("syncWorkspace");
+        const mode = document.getElementById("syncMode");
+        const deviceName = document.getElementById("syncDeviceName");
+        if (endpoint) endpoint.value = syncSettings?.endpoint || "";
+        if (workspace)
+          workspace.value = syncSettings?.workspace || DEFAULT_SYNC_WORKSPACE;
+        if (mode) mode.value = syncSettings?.mode || "auto";
+        if (deviceName) deviceName.value = syncSettings?.deviceName || "";
+      }
+
+      function saveSyncSettings(options = {}) {
+        const endpointEl = document.getElementById("syncEndpoint");
+        const workspaceEl = document.getElementById("syncWorkspace");
+        const modeEl = document.getElementById("syncMode");
+        const deviceEl = document.getElementById("syncDeviceName");
+
+        syncSettings = {
+          endpoint: String(endpointEl?.value || "")
+            .trim()
+            .replace(/\/$/, ""),
+          workspace: cleanWorkspace(
+            workspaceEl?.value || DEFAULT_SYNC_WORKSPACE,
+          ),
+          mode: ["auto", "manual", "off"].includes(modeEl?.value)
+            ? modeEl.value
+            : "auto",
+          deviceName: String(deviceEl?.value || "")
+            .trim()
+            .slice(0, 80),
+        };
+
+        if (workspaceEl) workspaceEl.value = syncSettings.workspace;
+
+        try {
+          localStorage.setItem(
+            SYNC_SETTINGS_STORAGE_KEY,
+            JSON.stringify(syncSettings),
+          );
+        } catch (e) {
+          console.error("Could not save sync settings", e);
+        }
+
+        updateSyncStatus();
+        if (!options.silent) {
+          setSyncResult("Sync settings saved", "ok");
+          toast("Sync settings saved", "success");
+        }
+        if (!options.skipSync) scheduleDataSync();
+      }
+
+      function getSyncEndpoint() {
+        if (syncSettings?.endpoint) return syncSettings.endpoint;
+        const proxy = rcConfig?.backendProxyUrl;
+        return proxy ? proxy.replace(/\/$/, "") + "/sync" : "";
+      }
+
+      function canSync() {
+        return !!(
+          syncSettings &&
+          syncSettings.mode !== "off" &&
+          getSyncEndpoint() &&
+          syncSettings.workspace
+        );
+      }
+
+      function buildSyncUrl() {
+        const endpoint = getSyncEndpoint().replace(/\/$/, "");
+        const workspace = encodeURIComponent(syncSettings.workspace);
+        if (endpoint.includes("{workspace}")) {
+          return endpoint.replace("{workspace}", workspace);
+        }
+        return endpoint + "/" + workspace;
+      }
+
+      function setSyncResult(message, type = "ok") {
+        const result = document.getElementById("syncResult");
+        if (!result) return;
+        result.className = "connect-result " + (type === "err" ? "err" : "ok");
+        result.textContent = message;
+      }
+
+      function updateSyncStatus(status, message) {
+        const el = document.getElementById("syncStatus");
+        const text = document.getElementById("syncStatusText");
+        if (!el || !text) return;
+
+        let nextStatus = status;
+        let nextMessage = message;
+        if (!nextStatus) {
+          if (
+            !syncSettings ||
+            syncSettings.mode === "off" ||
+            !getSyncEndpoint()
+          ) {
+            nextStatus = "disabled";
+            nextMessage = "Local only";
+          } else if (syncInFlight) {
+            nextStatus = "syncing";
+            nextMessage = "Syncing";
+          } else if (syncDirty) {
+            nextStatus = "syncing";
+            nextMessage = "Pending sync";
+          } else {
+            nextStatus = "synced";
+            nextMessage = stateMeta.lastSyncedAt
+              ? "Synced " + timeAgo(stateMeta.lastSyncedAt)
+              : "Sync ready";
+          }
+        }
+
+        el.className = "sync-status " + nextStatus;
+        text.textContent = nextMessage;
+      }
+
+      function scheduleDataSync(delay = 1200) {
+        if (syncTimer) clearTimeout(syncTimer);
+        syncTimer = null;
+        if (!canSync() || syncSettings.mode !== "auto") {
+          updateSyncStatus();
+          return;
+        }
+        syncTimer = setTimeout(() => syncNow({ silent: true }), delay);
+      }
+
+      function normalizeRemoteState(raw) {
+        const state = raw?.state || raw?.data?.state || raw?.data || raw;
+        if (!state || typeof state !== "object") {
+          throw new Error("Sync response did not include app state");
+        }
+        const remoteContacts = sanitizeContacts(state.contacts || []);
+        return {
+          version: Number(state.version) || APP_STATE_VERSION,
+          updatedAt: Number(state.updatedAt) || 0,
+          deviceId: String(state.deviceId || ""),
+          contacts: remoteContacts,
+          conversations: sanitizeConversations(
+            state.conversations || {},
+            remoteContacts,
+          ),
+          rcConfig: safeConfig(state.rcConfig || {}),
+        };
+      }
+
+      async function fetchRemoteState() {
+        const res = await fetch(buildSyncUrl(), {
+          method: "GET",
+          credentials: "include",
+          headers: { Accept: "application/json" },
+        });
+        if (res.status === 404 || res.status === 204) return null;
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok)
+          throw new Error(responseError(data, res.status, "Sync pull failed"));
+        return normalizeRemoteState(data);
+      }
+
+      async function pushState() {
+        const snapshot = makeStateSnapshot();
+        const body = JSON.stringify({ state: snapshot });
+        let res = await fetch(buildSyncUrl(), {
+          method: "PUT",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body,
+        });
+
+        if (res.status === 405) {
+          res = await fetch(buildSyncUrl(), {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body,
+          });
+        }
+
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok)
+          throw new Error(responseError(data, res.status, "Sync push failed"));
+        if (data?.state || data?.data?.state)
+          applyRemoteState(normalizeRemoteState(data));
+      }
+
+      function mergeContacts(localContacts, remoteContacts) {
+        return sanitizeContacts([
+          ...(localContacts || []),
+          ...(remoteContacts || []),
+        ]);
+      }
+
+      function mergeConversations(localConvos, remoteConvos) {
+        const merged = { ...(localConvos || {}) };
+        Object.entries(remoteConvos || {}).forEach(([phone, remote]) => {
+          const local = merged[phone];
+          if (!local) {
+            merged[phone] = remote;
+            return;
+          }
+          const contact =
+            contacts.find((c) => c.phone === phone) ||
+            remote.contact ||
+            local.contact;
+          merged[phone] = {
+            contact,
+            messages: dedupeMessages([
+              ...(local.messages || []),
+              ...(remote.messages || []),
+            ]).sort((a, b) => a.ts - b.ts),
+            unread: !!local.unread || !!remote.unread,
+          };
+        });
+        return sanitizeConversations(merged, contacts);
+      }
+
+      function applyRemoteState(remote) {
+        if (!remote) return false;
+        contacts = mergeContacts(contacts, remote.contacts);
+        conversations = mergeConversations(conversations, remote.conversations);
+        if (remote.updatedAt >= (stateMeta.updatedAt || 0)) {
+          rcConfig = safeConfig(remote.rcConfig || rcConfig || {});
+          applyConfigToForm();
+        }
+        stateMeta.updatedAt = Math.max(
+          stateMeta.updatedAt || 0,
+          remote.updatedAt || 0,
+        );
+        unreadCount = Object.values(conversations).filter(
+          (c) => c.unread,
+        ).length;
+        renderAll();
+        persistAppState({ dirty: false });
+        return true;
+      }
+
+      async function syncNow(options = {}) {
+        saveSyncSettings({ silent: true, skipSync: true });
+        if (!canSync()) {
+          updateSyncStatus("disabled", "Local only");
+          if (!options.silent) {
+            setSyncResult(
+              "Add a sync URL or backend proxy, then choose Auto sync or Manual only.",
+              "err",
+            );
+          }
+          return;
+        }
+        if (syncInFlight) return;
+
+        syncInFlight = true;
+        updateSyncStatus("syncing", "Syncing");
+        try {
+          const remote = await fetchRemoteState();
+          const remoteUpdatedAt = remote?.updatedAt || 0;
+          if (remote && remoteUpdatedAt > (stateMeta.updatedAt || 0)) {
+            applyRemoteState(remote);
+          }
+          if (
+            !remote ||
+            syncDirty ||
+            (stateMeta.updatedAt || 0) > remoteUpdatedAt
+          ) {
+            await pushState();
+          }
+          syncDirty = false;
+          stateMeta.lastSyncedAt = Date.now();
+          persistAppState({ dirty: false });
+          updateSyncStatus("synced", "Synced just now");
+          if (!options.silent) {
+            setSyncResult(
+              "Data synced for workspace " + syncSettings.workspace,
+              "ok",
+            );
+            toast("Data synced", "success");
+          }
+        } catch (e) {
+          console.error("Data sync failed", e);
+          updateSyncStatus("error", "Sync error");
+          if (!options.silent)
+            setSyncResult("Sync failed: " + e.message, "err");
+          else toast("Sync failed: " + e.message, "error");
+        } finally {
+          syncInFlight = false;
+          if (canSync() && syncSettings.mode === "auto") {
+            scheduleDataSync(SYNC_INTERVAL_MS);
+          } else {
+            updateSyncStatus();
+          }
+        }
+      }
+
+      async function pullLatest() {
+        saveSyncSettings({ silent: true, skipSync: true });
+        if (!canSync()) {
+          setSyncResult(
+            "Add a sync URL or backend proxy before pulling.",
+            "err",
+          );
+          return;
+        }
+        if (syncInFlight) return;
+        syncInFlight = true;
+        updateSyncStatus("syncing", "Pulling");
+        try {
+          const remote = await fetchRemoteState();
+          if (!remote) {
+            setSyncResult(
+              "No shared data exists yet for this workspace.",
+              "ok",
+            );
+            return;
+          }
+          applyRemoteState(remote);
+          syncDirty = false;
+          stateMeta.lastSyncedAt = Date.now();
+          persistAppState({ dirty: false });
+          setSyncResult("Latest shared data pulled", "ok");
+          toast("Latest data pulled", "success");
+        } catch (e) {
+          console.error("Pull failed", e);
+          setSyncResult("Pull failed: " + e.message, "err");
+          updateSyncStatus("error", "Sync error");
+        } finally {
+          syncInFlight = false;
+          updateSyncStatus();
+        }
+      }
+
+      function exportData() {
+        const snapshot = makeStateSnapshot();
+        const blob = new Blob([JSON.stringify(snapshot, null, 2)], {
+          type: "application/json",
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download =
+          "stumphouse-sms-backup-" +
+          new Date().toISOString().slice(0, 10) +
+          ".json";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        toast("Backup exported", "success");
+      }
+
+      function importData(event) {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          try {
+            const imported = normalizeRemoteState(JSON.parse(ev.target.result));
+            applyRemoteState(imported);
+            stateMeta.updatedAt = Date.now();
+            persistAppState({ sync: true });
+            toast("Backup imported", "success");
+          } catch (e) {
+            toast("Backup import failed: " + e.message, "error");
+          }
+        };
+        reader.readAsText(file);
+        event.target.value = "";
       }
 
       function isInboxActive() {
@@ -1657,7 +2426,9 @@
         return Object.values(conversations).reduce((latest, cv) => {
           const threadLatest = cv.messages.reduce(
             (max, msg) =>
-              msg.direction === "Inbound" && msg.ts ? Math.max(max, msg.ts) : max,
+              msg.direction === "Inbound" && msg.ts
+                ? Math.max(max, msg.ts)
+                : max,
             0,
           );
           return Math.max(latest, threadLatest);
@@ -1961,6 +2732,7 @@
 
       // ===== SETTINGS / RC CONNECTION =====
       function saveAndConnect() {
+        saveSyncSettings({ silent: true });
         rcConfig = {
           phone: formatPhone(document.getElementById("rcPhone").value.trim()),
           env: document.getElementById("rcEnv").value,
@@ -1973,30 +2745,34 @@
             .value.trim()
             .replace(/\/$/, ""),
         };
-        // Persist only non-secret preferences. Never store client secret or JWT in localStorage.
-        localStorage.setItem(
-          "rc_config",
-          JSON.stringify({
-            phone: rcConfig.phone,
-            env: rcConfig.env,
-            delay: rcConfig.delay,
-            backendProxyUrl: rcConfig.backendProxyUrl,
-          }),
-        );
+        // Persist only non-secret preferences. Never store client secret or JWT in browser storage.
+        persistAppState({ sync: true });
         authenticate();
       }
 
       function loadConfig() {
-        const saved = localStorage.getItem("rc_config");
-        if (saved) {
-          rcConfig = JSON.parse(saved);
-          document.getElementById("rcPhone").value = rcConfig.phone || "";
-          document.getElementById("rcEnv").value = rcConfig.env || "production";
-          document.getElementById("sendDelay").value = rcConfig.delay || 1000;
-          document.getElementById("backendProxyUrl").value =
-            rcConfig.backendProxyUrl || "";
-          if (rcConfig.backendProxyUrl) authenticate();
+        if (!rcConfig) {
+          try {
+            const saved = localStorage.getItem(RC_CONFIG_STORAGE_KEY);
+            if (saved) rcConfig = safeConfig(JSON.parse(saved));
+          } catch (e) {
+            console.error("Could not load RingCentral config", e);
+          }
         }
+        applyConfigToForm();
+        if (rcConfig?.backendProxyUrl) authenticate();
+      }
+
+      function applyConfigToForm() {
+        if (!rcConfig) rcConfig = safeConfig({});
+        const phone = document.getElementById("rcPhone");
+        const env = document.getElementById("rcEnv");
+        const delay = document.getElementById("sendDelay");
+        const proxy = document.getElementById("backendProxyUrl");
+        if (phone) phone.value = rcConfig.phone || "";
+        if (env) env.value = rcConfig.env || "production";
+        if (delay) delay.value = rcConfig.delay || 1000;
+        if (proxy) proxy.value = rcConfig.backendProxyUrl || "";
       }
 
       async function authenticate() {
@@ -2080,14 +2856,11 @@
             sel.appendChild(o);
           }
         } catch (e) {
-  console.error("Could not load numbers", e);
+          console.error("Could not load numbers", e);
 
-  toast(
-    `Failed to load numbers: ${e.message}`,
-    "error"
-  );
-}
-  }    
+          toast(`Failed to load numbers: ${e.message}`, "error");
+        }
+      }
 
       // ===== SEND MESSAGES =====
       async function sendMessages() {
@@ -2125,7 +2898,10 @@
           if (!isValidPhone(to)) {
             c.lastStatus = "failed";
             failed++;
-            toast("Invalid phone for " + c.name + ": use + country code", "error");
+            toast(
+              "Invalid phone for " + c.name + ": use + country code",
+              "error",
+            );
             saveContacts();
             renderRecipients();
             continue;
@@ -2187,22 +2963,15 @@
             } else {
               throw new Error(data.message || "Send failed");
             }
-} catch(e) {
-  c.lastStatus = 'failed';
-  failed++;
-  saveContacts();
+          } catch (e) {
+            c.lastStatus = "failed";
+            failed++;
+            saveContacts();
 
-  toast(
-    `Failed sending to ${c.name}: ${e.message}`,
-    'error'
-  );
+            toast(`Failed sending to ${c.name}: ${e.message}`, "error");
 
-  console.error(
-    'SMS send failed',
-    c.phone,
-    e
-  );
-}
+            console.error("SMS send failed", c.phone, e);
+          }
 
           renderRecipients();
           if (i < selected.length - 1) await sleep(delay);
@@ -2244,6 +3013,7 @@
           unreadCount++;
           updateBadge();
         }
+        persistAppState({ sync: true });
       }
 
       function renderConvoList(filter = "") {
@@ -2296,9 +3066,13 @@
         activeConvo = phone;
         const cv = conversations[phone];
         if (!cv) return;
+        const wasUnread = cv.unread;
         cv.unread = false;
-        unreadCount = Object.values(conversations).filter((c) => c.unread).length;
+        unreadCount = Object.values(conversations).filter(
+          (c) => c.unread,
+        ).length;
         updateBadge();
+        if (wasUnread) persistAppState({ sync: true });
         renderConvoList();
 
         const pane = document.getElementById("threadPane");
@@ -2391,6 +3165,7 @@
         if (!rcToken) {
           // Demo mode
           cv.messages.push({ text, direction: "Outbound", ts: Date.now() });
+          persistAppState({ sync: true });
           openConvo(phone);
           renderConvoList();
           toast("Demo mode — message not actually sent", "info");
@@ -2440,6 +3215,7 @@
             throw new Error(responseError(data, res.status));
           }
           cv.messages.push({ text, direction: "Outbound", ts: Date.now() });
+          persistAppState({ sync: true });
           openConvo(phone);
           renderConvoList();
         } catch (e) {
@@ -2468,10 +3244,9 @@
         try {
           const query = inboxQueryString();
           const res = rcToken.viaBackend
-            ? await fetch(
-                `${rcToken.base}/inbox?${query}`,
-                { credentials: "include" },
-              )
+            ? await fetch(`${rcToken.base}/inbox?${query}`, {
+                credentials: "include",
+              })
             : await fetch(
                 `${rcToken.base}/restapi/v1.0/account/~/extension/~/message-store?${query}`,
                 {
@@ -2519,6 +3294,7 @@
           });
           inboxPollDelay = INBOX_POLL_MIN_MS;
           updateBadge();
+          if (newCount || activeThreadChanged) persistAppState({ sync: true });
           if (activeThreadChanged && activeConvo) openConvo(activeConvo);
           else renderConvoList();
           if (newCount) {
@@ -2548,20 +3324,33 @@
         setTimeout(() => el.remove(), 3500);
       }
 
-      function setTheme(theme) {
-        document.body.classList.toggle('light-theme', theme === 'light');
-        localStorage.setItem('stumphouse_theme', theme);
-        const sel = document.getElementById('themeSelect');
-        if (sel) sel.value = theme;
+      function renderAll() {
+        renderRecipients();
+        updateSelectedCount();
+        renderConvoList();
+        updateBadge();
+        updateCharCount();
+        if (activeConvo && conversations[activeConvo]) openConvo(activeConvo);
       }
 
-      function loadTheme() {
-        const theme = localStorage.getItem('stumphouse_theme') || 'dark';
-        setTheme(theme);
+      function handleStorageChange(event) {
+        if (event.key !== APP_STATE_STORAGE_KEY || syncInFlight) return;
+        loadAppState();
+        renderAll();
+        updateSyncStatus();
       }
 
-      loadTheme();
+      function initApp() {
+        loadTheme();
+        loadAppState();
+        loadSyncSettings();
+        loadConfig();
+        renderAll();
+        window.addEventListener("storage", handleStorageChange);
+        scheduleDataSync(1800);
+      }
 
+      initApp();
     </script>
   </body>
 </html>
