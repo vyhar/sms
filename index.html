@@ -1248,7 +1248,7 @@
           <button
             class="btn danger sm"
             onclick="clearContacts()"
-            title="Clear all"
+            title="Clear selected contacts"
           >
             ✕
           </button>
@@ -1284,28 +1284,28 @@
                     class="chip"
                     onclick="
                       insertTemplate(
-                        'Hi {name}, just checking in from our team!',
+                        'Hi {name}, due to an unexpected under-hatch, your order has been rescheduled to ship by . Questions? Please don't hesitate to reach out.',
                       )
                     "
-                    >Hi {name}...</span
+                    >Carried order</span
                   >
                   <span
                     class="chip"
                     onclick="
                       insertTemplate(
-                        'Hello {business}! We have a special offer for you.',
+                        'Template 2,
                       )
                     "
-                    >Special offer</span
+                    >Template 2</span
                   >
                   <span
                     class="chip"
                     onclick="
                       insertTemplate(
-                        'Reminder: your appointment is coming up. Reply to confirm.',
+                        'Template 3',
                       )
                     "
-                    >Reminder</span
+                    >Template 3</span
                   >
                 </div>
                 <div class="char-count" id="charCount">0 / 160</div>
@@ -2564,12 +2564,22 @@
       }
 
       function clearContacts() {
-        if (!confirm("Clear all contacts?")) return;
-        contacts = [];
-        saveContacts();
-        renderRecipients();
-        updateSelectedCount();
-      }
+  const selectedCount = contacts.filter(c => c.selected).length;
+
+  if (selectedCount === 0) {
+    alert("No contacts selected.");
+    return;
+  }
+
+  if (!confirm(`Remove ${selectedCount} selected contact(s)?`)) return;
+
+  contacts = contacts.filter(c => !c.selected);
+
+  saveContacts();
+  renderRecipients();
+  updateSelectedCount();
+}
+
 
       // ===== CSV IMPORT =====
       function openImport() {
