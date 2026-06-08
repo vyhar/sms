@@ -1284,7 +1284,7 @@
                     class="chip"
                     onclick="
                       insertTemplate(
-                        'Hi {name}, due to an unexpected under-hatch, your order has been rescheduled to ship by . Questions? Please don't hesitate to reach out.',
+                        'Hi {name}, due to an unexpected under-hatch, your order has been rescheduled to ship by . Questions? Please do not hesitate to reach out.'
                       )
                     "
                     >Carried order</span
@@ -1293,18 +1293,12 @@
                     class="chip"
                     onclick="
                       insertTemplate(
-                        'Template 2,
+                        'Template 2'
                       )
                     "
                     >Template 2</span
                   >
-                  <span
-                    class="chip"
-                    onclick="
-                      insertTemplate(
-                        'Template 3',
-                      )
-                    "
+                  <span class="chip" onclick="insertTemplate('Template 3')"
                     >Template 3</span
                   >
                 </div>
@@ -2564,22 +2558,21 @@
       }
 
       function clearContacts() {
-  const selectedCount = contacts.filter(c => c.selected).length;
+        const selectedCount = contacts.filter((c) => c.selected).length;
 
-  if (selectedCount === 0) {
-    alert("No contacts selected.");
-    return;
-  }
+        if (selectedCount === 0) {
+          alert("No contacts selected.");
+          return;
+        }
 
-  if (!confirm(`Remove ${selectedCount} selected contact(s)?`)) return;
+        if (!confirm(`Remove ${selectedCount} selected contact(s)?`)) return;
 
-  contacts = contacts.filter(c => !c.selected);
+        contacts = contacts.filter((c) => !c.selected);
 
-  saveContacts();
-  renderRecipients();
-  updateSelectedCount();
-}
-
+        saveContacts();
+        renderRecipients();
+        updateSelectedCount();
+      }
 
       // ===== CSV IMPORT =====
       function openImport() {
