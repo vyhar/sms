@@ -3067,7 +3067,31 @@
         }
         persistAppState({ sync: true });
       }
+      function deleteConversation(phone) {
+        if (!confirm("Delete this conversation?")) return;
 
+        delete conversations[phone];
+
+        if (activeConvo === phone) {
+          activeConvo = null;
+
+          document.getElementById("threadPane").innerHTML = `
+      <div class="empty-thread">
+        <p>Select a conversation</p>
+      </div>
+    `;
+        }
+
+        unreadCount = Object.values(conversations).filter(
+          (c) => c.unread,
+        ).length;
+
+        updateBadge();
+        persistAppState({ sync: true });
+        renderConvoList();
+
+        toast("Conversation deleted", "success");
+      }
       function renderConvoList(filter = "") {
         const list = document.getElementById("convoList");
         const convos = Object.values(conversations)
@@ -3142,8 +3166,14 @@
       </div>
       <div class="thread-actions">
         ${savedContact ? "" : '<span class="unknown-contact-badge">Unknown</span>'}
-        ${savedContact ? "" : `<button class="btn sm primary" onclick="addContactFromInbox(${jsArg(phone)})">Add Contact</button>`}
-        <button class="btn sm" onclick="sendQuickReply(${jsArg(phone)})">Quick Reply</button>
+${savedContact ? "" : `<button class="btn sm primary" onclick="addContactFromInbox(${jsArg(phone)})">Add Contact</button>`}
+
+<button
+  class="btn danger sm"
+  onclick="deleteConversation(${jsArg(phone)})"
+>
+  🗑 Delete
+</button>
       </div>
     </div>
     <div class="messages-area" id="msgArea">
@@ -3192,18 +3222,6 @@
       function autoResize(el) {
         el.style.height = "auto";
         el.style.height = Math.min(el.scrollHeight, 120) + "px";
-      }
-
-      function sendQuickReply(phone) {
-        const cv = conversations[phone];
-        if (!cv) return;
-        if (activeConvo !== phone) openConvo(phone);
-        const input = document.getElementById("replyInput");
-        if (!input) return;
-        const firstName = cv.contact.name.split(" ")[0] || "there";
-        input.value = "Hi " + firstName + ", ";
-        input.focus();
-        autoResize(input);
       }
 
       async function sendReply(phone) {
