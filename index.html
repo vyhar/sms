@@ -773,6 +773,16 @@
       .thread-actions {
         display: flex;
         gap: 6px;
+        align-items: center;
+      }
+      .unknown-contact-badge {
+        font-family: var(--mono);
+        font-size: 10px;
+        padding: 3px 6px;
+        border-radius: 4px;
+        background: rgba(245, 166, 35, 0.1);
+        color: var(--amber);
+        border: 1px solid rgba(245, 166, 35, 0.2);
       }
 
       .messages-area {
@@ -1284,18 +1294,12 @@
                     class="chip"
                     onclick="
                       insertTemplate(
-                        'Hi {name}, due to an unexpected under-hatch, your order has been rescheduled to ship by . Questions? Please do not hesitate to reach out.'
+                        'Hi {name}, due to an unexpected under-hatch, your order has been rescheduled to ship by . Questions? Please do not hesitate to reach out.',
                       )
                     "
                     >Carried order</span
                   >
-                  <span
-                    class="chip"
-                    onclick="
-                      insertTemplate(
-                        'Template 2'
-                      )
-                    "
+                  <span class="chip" onclick="insertTemplate('Template 2')"
                     >Template 2</span
                   >
                   <span class="chip" onclick="insertTemplate('Template 3')"
@@ -2574,6 +2578,55 @@
         updateSelectedCount();
       }
 
+      function findContactByPhone(phone) {
+        const normalized = formatPhone(phone);
+        return contacts.find((c) => c.phone === normalized) || null;
+      }
+
+      function isSavedContact(phone) {
+        return !!findContactByPhone(phone);
+      }
+
+      function addContactFromInbox(phone) {
+        const normalized = formatPhone(phone);
+        if (!isValidPhone(normalized)) {
+          toast("Cannot save contact: invalid phone number", "error");
+          return;
+        }
+        const existing = findContactByPhone(normalized);
+        if (existing) {
+          toast("Contact already exists", "info");
+          openConvo(normalized);
+          return;
+        }
+
+        const cv = conversations[normalized];
+        const defaultName =
+          cv?.contact?.name && cv.contact.name !== normalized
+            ? cv.contact.name
+            : "";
+        const name = (prompt("Contact name", defaultName) || "").trim();
+        if (!name) return;
+        const business = (
+          prompt("Business (optional)", cv?.contact?.business || "") || ""
+        ).trim();
+        const contact = sanitizeContact(
+          { name, phone: normalized, business, selected: false },
+          contacts.length,
+        );
+        contacts.push(contact);
+        contacts = sanitizeContacts(contacts);
+
+        const saved = findContactByPhone(normalized) || contact;
+        if (conversations[normalized]) {
+          conversations[normalized].contact = saved;
+        }
+        persistAppState({ sync: true });
+        renderAll();
+        openConvo(normalized);
+        toast("Contact saved and queued for sync", "success");
+      }
+
       // ===== CSV IMPORT =====
       function openImport() {
         document.getElementById("importModal").classList.add("open");
@@ -3069,6 +3122,7 @@
         activeConvo = phone;
         const cv = conversations[phone];
         if (!cv) return;
+        const savedContact = isSavedContact(phone);
         const wasUnread = cv.unread;
         cv.unread = false;
         unreadCount = Object.values(conversations).filter(
@@ -3091,6 +3145,8 @@
         </div>
       </div>
       <div class="thread-actions">
+        ${savedContact ? "" : '<span class="unknown-contact-badge">Unknown</span>'}
+        ${savedContact ? "" : `<button class="btn sm primary" onclick="addContactFromInbox(${jsArg(phone)})">Add Contact</button>`}
         <button class="btn sm" onclick="sendQuickReply(${jsArg(phone)})">Quick Reply</button>
       </div>
     </div>
@@ -3269,10 +3325,12 @@
           (data.records || []).forEach((msg) => {
             const phone = formatPhone(msg.from?.phoneNumber);
             if (!phone) return;
-            const contact = contacts.find((c) => c.phone === phone) || {
+            const contact = findContactByPhone(phone) || {
               name: phone,
               phone,
-              _idx: Object.keys(conversations).length,
+              business: "",
+              selected: false,
+              _idx: contacts.length + Object.keys(conversations).length,
             };
             if (!conversations[phone])
               conversations[phone] = { contact, messages: [], unread: false };
