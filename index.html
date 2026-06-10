@@ -2420,13 +2420,10 @@
         scheduleInboxAutoRefresh(1000);
       }
 
-      function latestInboundTimestamp() {
+      function latestMessageTimestamp() {
         return Object.values(conversations).reduce((latest, cv) => {
           const threadLatest = cv.messages.reduce(
-            (max, msg) =>
-              msg.direction === "Inbound" && msg.ts
-                ? Math.max(max, msg.ts)
-                : max,
+            (max, msg) => Math.max(max, msg.ts || 0),
             0,
           );
           return Math.max(latest, threadLatest);
@@ -2436,10 +2433,9 @@
       function inboxQueryString() {
         const params = new URLSearchParams({
           messageType: "SMS",
-          direction: "Inbound",
-          perPage: "50",
+          perPage: "100",
         });
-        const latest = latestInboundTimestamp();
+        const latest = latestMessageTimestamp();
         if (latest) {
           params.set(
             "dateFrom",
@@ -3282,6 +3278,13 @@
         }
       }
 
+      function getThreadPhone(msg) {
+        if (msg.direction === "Outbound") {
+          return formatPhone(msg.to?.[0]?.phoneNumber);
+        }
+        return formatPhone(msg.from?.phoneNumber);
+      }
+
       async function refreshInbox(options = {}) {
         const silent = !!options.silent;
         const auto = !!options.auto;
@@ -3323,8 +3326,11 @@
           let newCount = 0;
           let activeThreadChanged = false;
           (data.records || []).forEach((msg) => {
-            const phone = formatPhone(msg.from?.phoneNumber);
+            const isOutbound = msg.direction === "Outbound";
+            const phone = getThreadPhone(msg);
+
             if (!phone) return;
+
             const contact = findContactByPhone(phone) || {
               name: phone,
               phone,
@@ -3332,24 +3338,35 @@
               selected: false,
               _idx: contacts.length + Object.keys(conversations).length,
             };
-            if (!conversations[phone])
-              conversations[phone] = { contact, messages: [], unread: false };
+
+            if (!conversations[phone]) {
+              conversations[phone] = {
+                contact,
+                messages: [],
+                unread: false,
+              };
+            }
+
             const exists = conversations[phone].messages.find(
               (m) => m.id === msg.id,
             );
+
             if (!exists) {
               conversations[phone].messages.push({
                 id: msg.id,
                 text: msg.subject || "(no text)",
-                direction: "Inbound",
+                direction: isOutbound ? "Outbound" : "Inbound",
                 ts: new Date(msg.creationTime).getTime(),
               });
-              if (activeConvo === phone) {
-                activeThreadChanged = true;
-              } else if (!conversations[phone].unread) {
-                conversations[phone].unread = true;
-                newCount++;
-                unreadCount++;
+
+              if (!isOutbound) {
+                if (activeConvo === phone) {
+                  activeThreadChanged = true;
+                } else if (!conversations[phone].unread) {
+                  conversations[phone].unread = true;
+                  newCount++;
+                  unreadCount++;
+                }
               }
             }
           });
