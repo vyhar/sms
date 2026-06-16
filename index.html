@@ -2971,7 +2971,7 @@
           }
           const personalizedMsg = msg
             .replace(/{name}/gi, c.name.split(" ")[0])
-            .replace(/{business}/gi, c.business || c.name);
+            .replace(/{business}/gi, c.business || c.name)
             .replace(/{order}/gi, c.orderNumber || "");
 
           const pct = Math.round((i / selected.length) * 100);
