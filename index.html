@@ -1285,7 +1285,7 @@
             <div class="message-box">
               <textarea
                 id="messageText"
-                placeholder="Type your message here... Use {name} to personalize with recipient's name, {business} for their business name."
+                placeholder="Type your message here... Use {name} to personalize with recipient's name, {business} for their business name. {order} for order number"
                 oninput="updateCharCount()"
               ></textarea>
               <div class="message-footer">
@@ -1294,7 +1294,7 @@
                     class="chip"
                     onclick="
                       insertTemplate(
-                        'Hi {name}, due to an unexpected under-hatch, your order has been rescheduled to ship by . Questions? Please do not hesitate to reach out.',
+                        'Hi {name}, due to an unexpected under-hatch, your order {order} has been rescheduled to ship by . Questions? Please do not hesitate to reach out.',
                       )
                     "
                     >Carried order</span
