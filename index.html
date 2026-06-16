@@ -2686,6 +2686,16 @@
               k.includes("company") ||
               k.includes("biz"),
           );
+          const orderKey = Object.keys(row).find(
+            (k) =>
+              k.includes("order") ||
+              k.includes("order_number") ||
+              k.includes("ordernumber") ||
+              k.includes("invoice")
+          );
+          const orderNumber = orderKey
+            ? String(row[orderKey] || "").trim().slice(0, 100)
+            : "";
           const phone = formatPhone(row[phoneKey] || "");
           if (!isValidPhone(phone)) {
             skipped++;
@@ -2700,6 +2710,7 @@
               name,
               phone,
               business,
+              orderNumber,
               selected: true,
               _idx: contacts.length,
             });
@@ -2961,6 +2972,7 @@
           const personalizedMsg = msg
             .replace(/{name}/gi, c.name.split(" ")[0])
             .replace(/{business}/gi, c.business || c.name);
+            .replace(/{order}/gi, c.orderNumber || "");
 
           const pct = Math.round((i / selected.length) * 100);
           document.getElementById("progressFill").style.width = pct + "%";
