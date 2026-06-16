@@ -1569,14 +1569,16 @@
               line-height: 1.8;
             "
           >
-            name,phone,business<br />
+            name,phone,business,orderNumber<br />
             John Smith,+18645551234,Smith Hardware<br />
             Jane Doe,+18645559876,Doe Consulting<br />
             <br />
             <span style="color: var(--text3)"
               >— phone must include country code (+1 for US)<br />
               — business column is optional<br />
-              — headers are case-insensitive</span
+              — headers are case-insensitive
+              — orderNumber is optional
+— available in templates as {order}</span
             >
           </div>
         </div>
@@ -1622,6 +1624,11 @@
               id="manualBusiness"
               placeholder="Business (optional)"
             />
+            <input
+            type="text"
+            id="manualOrderNumber"
+            placeholder="Order Number"
+/>
           </div>
           <div class="add-row" style="grid-template-columns: 1fr auto">
             <input type="text" id="manualPhone" placeholder="+18645551234" />
@@ -1786,6 +1793,7 @@
           name: String(raw?.name || phone || "Unknown").slice(0, 120),
           phone,
           business: String(raw?.business || "").slice(0, 160),
+          orderNumber: String(raw?.orderNumber || "").slice(0, 100),
           selected: !!raw?.selected,
           lastStatus: ["sent", "pending", "failed"].includes(raw?.lastStatus)
             ? raw.lastStatus
@@ -1864,6 +1872,7 @@
           name: c.name,
           phone: c.phone,
           business: c.business || "",
+          orderNumber: c.orderNumber || "",
           selected: !!c.selected,
           lastStatus: c.lastStatus || "",
         }));
@@ -2491,6 +2500,7 @@
           (c) =>
             c.name.toLowerCase().includes(filter.toLowerCase()) ||
             (c.business || "").toLowerCase().includes(filter.toLowerCase()) ||
+            (c.orderNumber || "").toLowerCase().includes(filter.toLowerCase()) ||
             c.phone.includes(filter),
         );
         if (!filtered.length) {
@@ -2515,7 +2525,11 @@
       <div class="recipient-check ${c.selected ? "checked" : ""}"></div>
       <div class="recipient-avatar ${avClass(c._idx)}">${escapeHtml(initials(c.name))}</div>
       <div class="recipient-info">
-        <div class="recipient-name">${safeName}${safeBusiness}</div>
+       <div class="recipient-name">
+  ${safeName}
+  ${safeBusiness}
+  ${c.orderNumber ? ` · Order #${escapeHtml(c.orderNumber)}` : ""}
+</div>
         <div class="recipient-number">${escapeHtml(c.phone)}</div>
       </div>
       ${safeStatus}
@@ -2734,6 +2748,8 @@
         const phone = formatPhone(
           document.getElementById("manualPhone").value.trim(),
         );
+        const orderNumber =
+          document.getElementById("manualOrderNumber").value.trim();
         const business = document.getElementById("manualBusiness").value.trim();
         if (!name || !isValidPhone(phone)) {
           toast("Enter name and valid E.164-style phone", "error");
@@ -2747,6 +2763,7 @@
           name,
           phone,
           business,
+          orderNumber,
           selected: true,
           _idx: contacts.length,
         });
@@ -2754,6 +2771,7 @@
         document.getElementById("manualName").value = "";
         document.getElementById("manualPhone").value = "";
         document.getElementById("manualBusiness").value = "";
+        document.getElementById("manualOrderNumber").value = "";
         renderRecipients();
         updateSelectedCount();
         toast("Contact added", "success");
