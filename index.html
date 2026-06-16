@@ -1691,6 +1691,9 @@
       const SYNC_INTERVAL_MS = 45000;
       const INBOX_POLL_MIN_MS = 60000;
       const INBOX_POLL_MAX_MS = 300000;
+      const SMS_RATE_LIMIT = 40;
+      const SMS_WINDOW_MS = 60000;
+      let smsSendHistory = [];
       const DEVICE_ID = getDeviceId();
 
       function escapeHtml(value) {
@@ -2942,7 +2945,29 @@
           toast(`Failed to load numbers: ${e.message}`, "error");
         }
       }
+async function waitForSmsSlot() {
+  const now = Date.now();
 
+  smsSendHistory = smsSendHistory.filter(
+    (ts) => now - ts < SMS_WINDOW_MS
+  );
+
+  if (smsSendHistory.length >= SMS_RATE_LIMIT) {
+    const oldest = smsSendHistory[0];
+    const waitTime = SMS_WINDOW_MS - (now - oldest);
+
+    toast(
+      `Rate limit protection: waiting ${Math.ceil(waitTime / 1000)}s`,
+      "info"
+    );
+
+    await sleep(waitTime);
+
+    return waitForSmsSlot();
+  }
+
+  smsSendHistory.push(Date.now());
+}
       // ===== SEND MESSAGES =====
       async function sendMessages() {
         if (!rcToken) {
@@ -2974,6 +2999,7 @@
         let sent = 0,
           failed = 0;
         for (let i = 0; i < selected.length; i++) {
+          await waitForSmsSlot();
           const c = selected[i];
           const to = formatPhone(c.phone);
           if (!isValidPhone(to)) {
@@ -3027,11 +3053,23 @@
                     }),
                   },
                 );
-            if (res.status === 429) await sleep(2000);
-            const data = await res.json().catch(() => ({}));
-            if (!res.ok) {
-              throw new Error(responseError(data, res.status));
-            }
+            if (res.status === 429) {
+  toast(
+    "RingCentral rate limit reached. Cooling down 30 seconds...",
+    "error"
+  );
+
+  await sleep(30000);
+
+  i--;
+  continue;
+}
+
+const data = await res.json().catch(() => ({}));
+
+if (!res.ok) {
+  throw new Error(responseError(data, res.status));
+}
             if (rcToken.viaBackend || data.id) {
               c.lastStatus = "sent";
               sent++;
